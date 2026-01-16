@@ -85,7 +85,7 @@
 <div align="center">
   
   <!-- Snake Animation - This will work after workflow runs -->
-  ![Snake animation](https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/output/github-contribution-grid-snake.svg)
+  ![Snake animation](https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/output/snake.svg)
   
 </div>
 
