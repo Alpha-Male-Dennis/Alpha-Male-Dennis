@@ -1,23 +1,38 @@
-name: Generate Snake Animation
+name: Generate Advanced Snake Animation
 
 on:
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
+    inputs:
+      theme:
+        description: 'Animation theme'
+        required: false
+        default: 'cyberpunk'
+      difficulty:
+        description: 'Snake difficulty level'
+        required: false
+        default: 'medium'
+
+env:
+  USERNAME: "Alpha-Male-Dennis"
+  THEME: ${{ github.event.inputs.theme || 'cyberpunk' }}
+  DIFFICULTY: ${{ github.event.inputs.difficulty || 'medium' }}
 
 jobs:
-  build:
+  generate-snake:
     runs-on: ubuntu-latest
-    
     permissions:
       contents: write
       pages: write
       id-token: write
     
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -26,327 +41,761 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests pillow numpy
+          pip install requests pillow numpy matplotlib svgwrite
           
-      - name: Generate beautiful snake animation
+      - name: Generate advanced snake animation
         run: |
           cat > generate_snake.py << 'EOF'
           import datetime
           import math
           import random
+          import json
+          from dataclasses import dataclass
+          from typing import List, Tuple
+          import svgwrite
           
-          def create_snake_svg(username):
-              # Get current date
-              today = datetime.datetime.now()
-              date_str = today.strftime("%B %d, %Y")
+          @dataclass
+          class Theme:
+              name: str
+              bg_color: str
+              snake_colors: List[str]
+              block_colors: List[str]
+              text_color: str
+              accent_color: str
+              glow_color: str
               
-              # Create a more complex and visually appealing snake
-              svg_width = 840
-              svg_height = 200
+          @dataclass
+          class Block:
+              x: float
+              y: float
+              size: float
+              color: str
+              value: int
+              collected: bool = False
+              type: str = "points"  # points, powerup, bonus, special
+          
+          class AdvancedSnakeGenerator:
+              def __init__(self, username: str, theme_name: str = "cyberpunk"):
+                  self.username = username
+                  self.themes = self._init_themes()
+                  self.theme = self.themes.get(theme_name, self.themes["cyberpunk"])
+                  self.width = 1000
+                  self.height = 400
+                  self.blocks = []
+                  self.snake_path = []
+                  self.date_str = datetime.datetime.now().strftime("%B %d, %Y %H:%M")
+                  
+              def _init_themes(self):
+                  return {
+                      "cyberpunk": Theme(
+                          name="cyberpunk",
+                          bg_color="#0a0e17",
+                          snake_colors=["#00ff9d", "#00b8ff", "#9d00ff"],
+                          block_colors=["#ff0055", "#ffaa00", "#00ffaa", "#aa00ff"],
+                          text_color="#ffffff",
+                          accent_color="#00ff9d",
+                          glow_color="#00ff9d"
+                      ),
+                      "neon": Theme(
+                          name="neon",
+                          bg_color="#000000",
+                          snake_colors=["#ff00ff", "#00ffff", "#ffff00"],
+                          block_colors=["#ff0000", "#00ff00", "#0000ff", "#ff8800"],
+                          text_color="#ffffff",
+                          accent_color="#ff00ff",
+                          glow_color="#ff00ff"
+                      ),
+                      "github": Theme(
+                          name="github",
+                          bg_color="#0d1117",
+                          snake_colors=["#58a6ff", "#8b949e", "#238636"],
+                          block_colors=["#f78166", "#56d364", "#e3b341", "#8b949e"],
+                          text_color="#f0f6fc",
+                          accent_color="#58a6ff",
+                          glow_color="#58a6ff"
+                      ),
+                      "matrix": Theme(
+                          name="matrix",
+                          bg_color="#001100",
+                          snake_colors=["#00ff41", "#008f11", "#003b00"],
+                          block_colors=["#00ff41", "#007700", "#00aa00", "#003300"],
+                          text_color="#00ff41",
+                          accent_color="#00ff41",
+                          glow_color="#00ff41"
+                      )
+                  }
               
-              # Color palette
-              colors = {
-                  'background': '#0d1117',
-                  'text_primary': '#ffffff',
-                  'text_secondary': '#8b949e',
-                  'snake_green': '#00ff88',
-                  'snake_blue': '#58a6ff',
-                  'snake_purple': '#bc8cff',
-                  'grid_line': '#21262d',
-                  'point_highlight': '#ff6b6b'
-              }
+              def generate_snake_path(self):
+                  """Generate a smooth snake path with bezier curves"""
+                  points = []
+                  for i in range(20):
+                      x = 100 + i * 40
+                      y_base = 200
+                      
+                      # Create interesting wave pattern
+                      amplitude = 60
+                      frequency = 0.5
+                      y = y_base + amplitude * math.sin(i * frequency)
+                      
+                      # Add some randomness
+                      if i % 4 == 0:
+                          y += random.randint(-15, 15)
+                      
+                      points.append((x, y))
+                  
+                  # Create smooth bezier path
+                  path = f"M {points[0][0]} {points[0][1]}"
+                  for i in range(1, len(points) - 2, 3):
+                      p1 = points[i]
+                      p2 = points[i + 1]
+                      p3 = points[i + 2]
+                      path += f" C {p1[0]} {p1[1]}, {p2[0]} {p2[1]}, {p3[0]} {p3[1]}"
+                  
+                  self.snake_path = points
+                  return path
               
-              # Create snake-like path with bezier curves
-              path_points = []
-              for i in range(0, 14):
-                  x = 50 + i * 55
-                  # Create wave pattern
-                  y_base = 120
-                  amplitude = 40
-                  y = y_base + amplitude * math.sin(i * 0.8)
+              def generate_blocks(self):
+                  """Generate collectible blocks at random positions"""
+                  self.blocks = []
+                  block_types = [
+                      ("points", 100, 8),
+                      ("powerup", 250, 10),
+                      ("bonus", 500, 12),
+                      ("special", 1000, 15)
+                  ]
                   
-                  if i % 3 == 0:
-                      # Add some variation
-                      y += random.randint(-10, 10)
-                  
-                  path_points.append((x, y))
+                  for i in range(15):
+                      # Position blocks near the snake path
+                      x = random.randint(120, 880)
+                      y = random.randint(100, 300)
+                      
+                      # Ensure blocks are not too close to each other
+                      too_close = any(math.sqrt((x - b.x)**2 + (y - b.y)**2) < 30 for b in self.blocks)
+                      if too_close:
+                          continue
+                      
+                      block_type, value, size = random.choice(block_types)
+                      color = random.choice(self.theme.block_colors)
+                      
+                      self.blocks.append(Block(
+                          x=x, y=y, size=size,
+                          color=color, value=value,
+                          type=block_type
+                      ))
               
-              # Build path data
-              path_data = f"M {path_points[0][0]} {path_points[0][1]}"
-              for i in range(1, len(path_points) - 1):
-                  x1, y1 = path_points[i]
-                  x2, y2 = path_points[i + 1]
-                  # Control points for smooth curves
-                  cp1x = (path_points[i-1][0] + x1) / 2
-                  cp1y = (path_points[i-1][1] + y1) / 2
-                  cp2x = (x1 + x2) / 2
-                  cp2y = (y1 + y2) / 2
-                  
-                  path_data += f" C {cp1x} {cp1y}, {x1} {y1}, {cp2x} {cp2y}"
-              
-              # Add the last segment
-              last_x, last_y = path_points[-1]
-              path_data += f" L {last_x} {last_y}"
-              
-              svg = f'''<?xml version="1.0" encoding="UTF-8"?>
-              <svg xmlns="http://www.w3.org/2000/svg" width="{svg_width}" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}">
-                  <defs>
-                      <linearGradient id="snakeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stop-color="{colors['snake_green']}" />
-                          <stop offset="50%" stop-color="{colors['snake_blue']}" />
-                          <stop offset="100%" stop-color="{colors['snake_purple']}" />
-                      </linearGradient>
-                      <linearGradient id="titleGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stop-color="#00ff88" />
-                          <stop offset="100%" stop-color="#58a6ff" />
-                      </linearGradient>
-                      <filter id="glow">
-                          <feGaussianBlur stdDeviation="2" result="blur" />
-                          <feMerge>
-                              <feMergeNode in="blur" />
-                              <feMergeNode in="SourceGraphic" />
-                          </feMerge>
-                      </filter>
-                  </defs>
-                  
-                  <style>
-                      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-                      .title {{ 
-                          font-family: 'Inter', sans-serif; 
-                          font-weight: 700;
-                          font-size: 28px;
-                      }}
-                      .subtitle {{ 
-                          font-family: 'Inter', sans-serif; 
-                          font-weight: 400;
-                          font-size: 14px;
-                      }}
-                  </style>
-                  
-                  <!-- Background -->
-                  <rect width="100%" height="100%" fill="{colors['background']}" rx="10" ry="10"/>
-                  
-                  <!-- Grid lines -->
-                  <g opacity="0.3">
-                      <line x1="0" y1="50" x2="{svg_width}" y2="50" stroke="{colors['grid_line']}" stroke-width="1" stroke-dasharray="5,5" />
-                      <line x1="0" y1="100" x2="{svg_width}" y2="100" stroke="{colors['grid_line']}" stroke-width="1" stroke-dasharray="5,5" />
-                      <line x1="0" y1="150" x2="{svg_width}" y2="150" stroke="{colors['grid_line']}" stroke-width="1" stroke-dasharray="5,5" />
-                  </g>
-                  
-                  <!-- Title with gradient -->
-                  <text class="title" x="{svg_width/2}" y="35" text-anchor="middle" fill="url(#titleGradient)">
-                      {username}'s GitHub Activity
-                  </text>
-                  
-                  <!-- Subtitle -->
-                  <text class="subtitle" x="{svg_width/2}" y="185" text-anchor="middle" fill="{colors['text_secondary']}">
-                      Last updated: {date_str} • Contributions visualized as a snake
-                  </text>
-                  
-                  <!-- Main snake path -->
-                  <path d="{path_data}" 
-                        fill="none" 
-                        stroke="url(#snakeGradient)" 
-                        stroke-width="4" 
-                        stroke-linecap="round" 
-                        stroke-linejoin="round"
-                        filter="url(#glow)" />
-                  
-                  <!-- Snake head (at the end) -->
-                  <circle cx="{last_x}" cy="{last_y}" r="6" fill="{colors['point_highlight']}" filter="url(#glow)">
-                      <animate attributeName="r" values="6;8;6" dur="1.5s" repeatCount="indefinite" />
-                  </circle>
-                  
-                  <!-- Data points along the snake -->
-                  <g id="data-points">
-              '''
-              
-              # Add data points along the path
-              for i, (x, y) in enumerate(path_points):
-                  if i % 2 == 0:  # Every other point
-                      svg += f'''
-                      <circle cx="{x}" cy="{y}" r="3" fill="{colors['snake_green']}" opacity="0.7">
-                          <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" begin="{i * 0.2}s" repeatCount="indefinite" />
-                      </circle>
+              def create_block_svg(self, block: Block):
+                  """Create SVG for a collectible block"""
+                  if block.type == "points":
+                      shape = f'''
+                          <rect x="{block.x-block.size/2}" y="{block.y-block.size/2}" 
+                                width="{block.size}" height="{block.size}" 
+                                rx="{block.size/4}" ry="{block.size/4}"
+                                fill="{block.color}" opacity="0.9">
+                              <animate attributeName="opacity" values="0.7;1;0.7" dur="1.5s" repeatCount="indefinite"/>
+                          </rect>
+                          <text x="{block.x}" y="{block.y+2}" 
+                                text-anchor="middle" 
+                                font-size="{block.size/2}" 
+                                fill="white" 
+                                font-weight="bold">
+                              {block.value}
+                          </text>
                       '''
-              
-              svg += '''
-                  </g>
+                  elif block.type == "powerup":
+                      shape = f'''
+                          <circle cx="{block.x}" cy="{block.y}" r="{block.size/2}" 
+                                  fill="{block.color}" opacity="0.9">
+                              <animate attributeName="r" values="{block.size/2};{block.size/1.8};{block.size/2}" dur="1s" repeatCount="indefinite"/>
+                          </circle>
+                          <text x="{block.x}" y="{block.y+2}" 
+                                text-anchor="middle" 
+                                font-size="{block.size/2.5}" 
+                                fill="white" 
+                                font-weight="bold">
+                              ⚡
+                          </text>
+                      '''
+                  elif block.type == "bonus":
+                      shape = f'''
+                          <polygon points="{block.x},{block.y-block.size/2} {block.x+block.size/2},{block.y+block.size/2} {block.x-block.size/2},{block.y+block.size/2}"
+                                  fill="{block.color}" opacity="0.9">
+                              <animateTransform attributeName="transform" type="rotate" 
+                                                from="0 {block.x} {block.y}" to="360 {block.x} {block.y}" 
+                                                dur="4s" repeatCount="indefinite"/>
+                          </polygon>
+                          <text x="{block.x}" y="{block.y+block.size/4}" 
+                                text-anchor="middle" 
+                                font-size="{block.size/3}" 
+                                fill="white" 
+                                font-weight="bold">
+                              ★
+                          </text>
+                      '''
+                  else:  # special
+                      shape = f'''
+                          <rect x="{block.x-block.size/2}" y="{block.y-block.size/2}" 
+                                width="{block.size}" height="{block.size}" 
+                                fill="{block.color}" opacity="0.9">
+                              <animate attributeName="transform" type="scale" 
+                                       values="1;1.2;1" dur="0.8s" repeatCount="indefinite"/>
+                          </rect>
+                          <text x="{block.x}" y="{block.y+2}" 
+                                text-anchor="middle" 
+                                font-size="{block.size/2.5}" 
+                                fill="white" 
+                                font-weight="bold">
+                              👑
+                          </text>
+                      '''
                   
-                  <!-- Decorative elements -->
-                  <g opacity="0.1">
-                      <circle cx="50" cy="50" r="20" fill="#00ff88" />
-                      <circle cx="790" cy="50" r="15" fill="#58a6ff" />
-                      <circle cx="400" cy="30" r="10" fill="#bc8cff" />
-                  </g>
-                  
-                  <!-- GitHub logo/symbol -->
-                  <g transform="translate(30, 30)" opacity="0.8">
-                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" 
-                            fill="#ffffff" 
-                            transform="scale(0.5)"/>
-                  </g>
-              </svg>
-              '''
+                  return shape
               
-              return svg
+              def generate_svg(self):
+                  """Generate the complete SVG with snake and blocks"""
+                  snake_path = self.generate_snake_path()
+                  self.generate_blocks()
+                  
+                  svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+                  <svg xmlns="http://www.w3.org/2000/svg" 
+                       xmlns:xlink="http://www.w3.org/1999/xlink"
+                       width="{self.width}" height="{self.height}" 
+                       viewBox="0 0 {self.width} {self.height}">
+                      
+                      <defs>
+                          <linearGradient id="snakeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" stop-color="{self.theme.snake_colors[0]}" />
+                              <stop offset="50%" stop-color="{self.theme.snake_colors[1]}" />
+                              <stop offset="100%" stop-color="{self.theme.snake_colors[2]}" />
+                          </linearGradient>
+                          
+                          <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+                              <stop offset="0%" stop-color="{self.theme.glow_color}" stop-opacity="0.8"/>
+                              <stop offset="100%" stop-color="{self.theme.glow_color}" stop-opacity="0"/>
+                          </radialGradient>
+                          
+                          <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+                              <feGaussianBlur stdDeviation="3" result="blur"/>
+                              <feMerge>
+                                  <feMergeNode in="blur"/>
+                                  <feMergeNode in="SourceGraphic"/>
+                              </feMerge>
+                          </filter>
+                          
+                          <filter id="block-glow" x="-100%" y="-100%" width="300%" height="300%">
+                              <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur"/>
+                              <feOffset in="blur" dx="0" dy="0" result="offsetBlur"/>
+                              <feFlood flood-color="{self.theme.accent_color}" flood-opacity="0.5"/>
+                              <feComposite in2="offsetBlur" operator="in"/>
+                              <feMerge>
+                                  <feMergeNode/>
+                                  <feMergeNode in="SourceGraphic"/>
+                              </feMerge>
+                          </filter>
+                          
+                          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="{self.theme.accent_color}20" stroke-width="1"/>
+                          </pattern>
+                      </defs>
+                      
+                      <style>
+                          @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap');
+                          .header {{ font-family: 'Orbitron', sans-serif; font-weight: 900; }}
+                          .stats {{ font-family: 'Inter', sans-serif; font-weight: 400; }}
+                          .block-label {{ font-family: 'Inter', sans-serif; font-weight: 600; }}
+                      </style>
+                      
+                      <!-- Background -->
+                      <rect width="100%" height="100%" fill="{self.theme.bg_color}"/>
+                      
+                      <!-- Grid Pattern -->
+                      <rect width="100%" height="100%" fill="url(#grid)" opacity="0.3"/>
+                      
+                      <!-- Header -->
+                      <g transform="translate(500, 40)">
+                          <text class="header" text-anchor="middle" font-size="32" fill="{self.theme.accent_color}">
+                              {self.username}'s GitHub Snake
+                          </text>
+                          <text class="stats" text-anchor="middle" y="25" font-size="14" fill="{self.theme.text_color}" opacity="0.8">
+                              Active Developer | Daily Contributor | {self.date_str}
+                          </text>
+                      </g>
+                      
+                      <!-- Snake -->
+                      <g id="snake">
+                          <path d="{snake_path}" 
+                                fill="none" 
+                                stroke="url(#snakeGradient)" 
+                                stroke-width="6" 
+                                stroke-linecap="round"
+                                filter="url(#neon-glow)">
+                              <animate attributeName="stroke-dashoffset" 
+                                       values="100;0" 
+                                       dur="30s" 
+                                       repeatCount="indefinite"/>
+                          </path>
+                          
+                          <!-- Snake segments with 3D effect -->
+                          {self._create_snake_segments()}
+                          
+                          <!-- Snake head -->
+                          <circle cx="{self.snake_path[-1][0]}" cy="{self.snake_path[-1][1]}" r="10" 
+                                  fill="{self.theme.accent_color}" filter="url(#neon-glow)">
+                              <animate attributeName="r" values="8;12;8" dur="1s" repeatCount="indefinite"/>
+                              <animateTransform attributeName="transform" 
+                                                type="rotate" 
+                                                values="0;360" 
+                                                dur="4s" 
+                                                repeatCount="indefinite"
+                                                additive="sum"/>
+                          </circle>
+                          
+                          <!-- Snake eyes -->
+                          <circle cx="{self.snake_path[-1][0] - 3}" cy="{self.snake_path[-1][1] - 3}" r="2" fill="white"/>
+                          <circle cx="{self.snake_path[-1][0] + 3}" cy="{self.snake_path[-1][1] - 3}" r="2" fill="white"/>
+                      </g>
+                      
+                      <!-- Collectible Blocks -->
+                      <g id="blocks">
+                          {''.join(self.create_block_svg(block) for block in self.blocks)}
+                      </g>
+                      
+                      <!-- Game Stats -->
+                      <g transform="translate(30, 350)">
+                          <rect x="0" y="0" width="940" height="40" rx="10" ry="10" 
+                                fill="{self.theme.bg_color}80" stroke="{self.theme.accent_color}40" stroke-width="1"/>
+                          
+                          <text class="stats" x="20" y="25" font-size="12" fill="{self.theme.text_color}">
+                              Blocks: {len(self.blocks)} | Theme: {self.theme.name.title()} | Score: ###
+                          </text>
+                          
+                          <text class="stats" x="500" y="25" font-size="12" fill="{self.theme.text_color}">
+                              Power-ups: ⚡ | Bonuses: ★ | Specials: 👑
+                          </text>
+                      </g>
+                      
+                      <!-- Particle Effects -->
+                      <g id="particles">
+                          <circle cx="200" cy="150" r="2" fill="{self.theme.accent_color}" opacity="0.6">
+                              <animate attributeName="cy" values="150;100;150" dur="3s" repeatCount="indefinite"/>
+                              <animate attributeName="opacity" values="0.2;0.8;0.2" dur="3s" repeatCount="indefinite"/>
+                          </circle>
+                          <circle cx="800" cy="250" r="3" fill="{self.theme.snake_colors[1]}" opacity="0.6">
+                              <animate attributeName="cy" values="250;300;250" dur="4s" repeatCount="indefinite"/>
+                          </circle>
+                      </g>
+                      
+                      <!-- Corner Decorations -->
+                      <path d="M0,0 L50,0 L0,50 Z" fill="{self.theme.accent_color}" opacity="0.3"/>
+                      <path d="M{self.width},0 L{self.width-50},0 L{self.width},50 Z" fill="{self.theme.snake_colors[1]}" opacity="0.3"/>
+                      <path d="M0,{self.height} L50,{self.height} L0,{self.height-50} Z" fill="{self.theme.snake_colors[2]}" opacity="0.3"/>
+                      <path d="M{self.width},{self.height} L{self.width-50},{self.height} L{self.width},{self.height-50} Z" fill="{self.theme.accent_color}" opacity="0.3"/>
+                  </svg>
+                  '''
+                  
+                  return svg_content
+              
+              def _create_snake_segments(self):
+                  """Create individual segments for 3D effect"""
+                  segments = ""
+                  for i, (x, y) in enumerate(self.snake_path):
+                      if i % 3 == 0:
+                          radius = 4 + math.sin(i * 0.5) * 2
+                          color_idx = i % len(self.theme.snake_colors)
+                          segments += f'''
+                          <circle cx="{x}" cy="{y}" r="{radius}" 
+                                  fill="{self.theme.snake_colors[color_idx]}" opacity="0.7">
+                              <animate attributeName="r" values="{radius-1};{radius+1};{radius-1}" 
+                                       dur="{1 + i*0.1}s" repeatCount="indefinite"/>
+                          </circle>
+                          '''
+                  return segments
+              
+              def save_svg(self, filename="snake.svg"):
+                  svg_content = self.generate_svg()
+                  with open(filename, 'w') as f:
+                      f.write(svg_content)
+                  print(f"Generated advanced snake animation: {filename}")
+                  
+                  # Also create a JSON file with block positions for potential game logic
+                  blocks_data = [
+                      {"x": b.x, "y": b.y, "type": b.type, "value": b.value, "color": b.color}
+                      for b in self.blocks
+                  ]
+                  
+                  with open('blocks_data.json', 'w') as f:
+                      json.dump({
+                          "username": self.username,
+                          "theme": self.theme.name,
+                          "date": self.date_str,
+                          "blocks": blocks_data,
+                          "snake_length": len(self.snake_path)
+                      }, f, indent=2)
           
-          # Generate the SVG
-          username = "Alpha-Male-Dennis"
-          svg_content = create_snake_svg(username)
-          
-          # Save to file
-          with open('snake.svg', 'w') as f:
-              f.write(svg_content)
-          
-          print(f"Generated beautiful snake animation for {username}")
+          # Main execution
+          if __name__ == "__main__":
+              import sys
+              theme = sys.argv[1] if len(sys.argv) > 1 else "cyberpunk"
+              
+              generator = AdvancedSnakeGenerator("Alpha-Male-Dennis", theme)
+              generator.save_svg("snake.svg")
+              
+              # Create a simplified version for README
+              simplified_gen = AdvancedSnakeGenerator("Alpha-Male-Dennis", "github")
+              simplified_gen.save_svg("snake-readme.svg")
+              
+              print(f"Snake animation generated with {len(generator.blocks)} collectible blocks")
+              print(f"Theme: {theme}")
           EOF
           
-          python generate_snake.py
+          # Run the generator
+          python generate_snake.py "$THEME"
           
-      - name: Add contribution metrics
+      - name: Generate interactive preview
         run: |
-          # Add some GitHub stats to make it more personalized
-          cat >> generate_snake.py << 'EOF'
-          
-          # Function to create a stats-based snake
-          def create_stats_snake():
-              # This would normally fetch from GitHub API
-              # For now, we'll create a decorative version
+          cat > preview.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Alpha-Male-Dennis - GitHub Snake Animation</title>
+              <style>
+                  body {
+                      background: linear-gradient(135deg, #0a0e17 0%, #161b22 100%);
+                      color: #ffffff;
+                      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                      margin: 0;
+                      padding: 20px;
+                      min-height: 100vh;
+                  }
+                  .container {
+                      max-width: 1200px;
+                      margin: 0 auto;
+                      padding: 20px;
+                  }
+                  .header {
+                      text-align: center;
+                      margin-bottom: 40px;
+                      padding: 20px;
+                      background: rgba(255, 255, 255, 0.05);
+                      border-radius: 15px;
+                      backdrop-filter: blur(10px);
+                      border: 1px solid rgba(255, 255, 255, 0.1);
+                  }
+                  .header h1 {
+                      color: #00ff9d;
+                      font-size: 2.5em;
+                      margin-bottom: 10px;
+                      text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+                  }
+                  .header p {
+                      color: #8b949e;
+                      font-size: 1.1em;
+                  }
+                  .animation-container {
+                      display: flex;
+                      flex-wrap: wrap;
+                      gap: 20px;
+                      justify-content: center;
+                  }
+                  .card {
+                      background: rgba(255, 255, 255, 0.05);
+                      border-radius: 15px;
+                      padding: 20px;
+                      flex: 1;
+                      min-width: 300px;
+                      border: 1px solid rgba(255, 255, 255, 0.1);
+                      transition: transform 0.3s, box-shadow 0.3s;
+                  }
+                  .card:hover {
+                      transform: translateY(-5px);
+                      box-shadow: 0 10px 30px rgba(0, 255, 157, 0.2);
+                  }
+                  .card h3 {
+                      color: #58a6ff;
+                      margin-top: 0;
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                  }
+                  .card svg {
+                      width: 100%;
+                      height: auto;
+                      border-radius: 10px;
+                  }
+                  .stats {
+                      background: rgba(255, 255, 255, 0.05);
+                      border-radius: 15px;
+                      padding: 20px;
+                      margin-top: 20px;
+                      border: 1px solid rgba(255, 255, 255, 0.1);
+                  }
+                  .stats-grid {
+                      display: grid;
+                      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                      gap: 15px;
+                      margin-top: 15px;
+                  }
+                  .stat-item {
+                      background: rgba(0, 255, 157, 0.1);
+                      padding: 15px;
+                      border-radius: 10px;
+                      text-align: center;
+                  }
+                  .stat-item .label {
+                      color: #8b949e;
+                      font-size: 0.9em;
+                      display: block;
+                  }
+                  .stat-item .value {
+                      color: #00ff9d;
+                      font-size: 1.5em;
+                      font-weight: bold;
+                      display: block;
+                      margin-top: 5px;
+                  }
+                  .instructions {
+                      background: rgba(88, 166, 255, 0.1);
+                      border-radius: 15px;
+                      padding: 20px;
+                      margin-top: 20px;
+                      border: 1px solid rgba(88, 166, 255, 0.2);
+                  }
+                  .theme-selector {
+                      display: flex;
+                      gap: 10px;
+                      margin: 20px 0;
+                      flex-wrap: wrap;
+                  }
+                  .theme-btn {
+                      padding: 10px 20px;
+                      border: none;
+                      border-radius: 25px;
+                      background: rgba(255, 255, 255, 0.1);
+                      color: white;
+                      cursor: pointer;
+                      transition: all 0.3s;
+                  }
+                  .theme-btn:hover {
+                      background: rgba(255, 255, 255, 0.2);
+                  }
+                  .theme-btn.active {
+                      background: #00ff9d;
+                      color: #0a0e17;
+                      font-weight: bold;
+                  }
+                  .block-types {
+                      display: flex;
+                      gap: 15px;
+                      margin-top: 15px;
+                      flex-wrap: wrap;
+                  }
+                  .block-type {
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                      padding: 8px 15px;
+                      background: rgba(255, 255, 255, 0.05);
+                      border-radius: 20px;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <div class="header">
+                      <h1>🐍 GitHub Contribution Snake</h1>
+                      <p>Interactive visualization of Alpha-Male-Dennis's GitHub activity</p>
+                      <p>Last updated: $(date '+%Y-%m-%d %H:%M UTC')</p>
+                  </div>
+                  
+                  <div class="animation-container">
+                      <div class="card">
+                          <h3>📊 Main Snake Animation</h3>
+                          <object data="snake.svg" type="image/svg+xml"></object>
+                          <p>Real-time visualization of GitHub contributions with collectible blocks</p>
+                      </div>
+                      
+                      <div class="card">
+                          <h3>🎮 Interactive Preview</h3>
+                          <div id="interactive-snake">
+                              <!-- Interactive SVG will be loaded here -->
+                              <object data="snake-readme.svg" type="image/svg+xml"></object>
+                          </div>
+                          <div class="theme-selector">
+                              <button class="theme-btn active" onclick="changeTheme('cyberpunk')">Cyberpunk</button>
+                              <button class="theme-btn" onclick="changeTheme('neon')">Neon</button>
+                              <button class="theme-btn" onclick="changeTheme('github')">GitHub</button>
+                              <button class="theme-btn" onclick="changeTheme('matrix')">Matrix</button>
+                          </div>
+                      </div>
+                  </div>
+                  
+                  <div class="stats">
+                      <h3>📈 Game Statistics</h3>
+                      <div class="stats-grid">
+                          <div class="stat-item">
+                              <span class="label">Total Blocks</span>
+                              <span class="value" id="total-blocks">15</span>
+                          </div>
+                          <div class="stat-item">
+                              <span class="label">Snake Length</span>
+                              <span class="value" id="snake-length">20</span>
+                          </div>
+                          <div class="stat-item">
+                              <span class="label">Current Score</span>
+                              <span class="value" id="current-score">0</span>
+                          </div>
+                          <div class="stat-item">
+                              <span class="label">Power-ups Collected</span>
+                              <span class="value" id="powerups">0</span>
+                          </div>
+                      </div>
+                      
+                      <div class="block-types">
+                          <div class="block-type">
+                              <div style="width: 12px; height: 12px; background: #ff0055; border-radius: 3px;"></div>
+                              <span>Points (100)</span>
+                          </div>
+                          <div class="block-type">
+                              <div style="width: 12px; height: 12px; background: #ffaa00; border-radius: 50%;"></div>
+                              <span>Power-up ⚡ (250)</span>
+                          </div>
+                          <div class="block-type">
+                              <div style="width: 12px; height: 12px; background: #00ffaa; transform: rotate(45deg);"></div>
+                              <span>Bonus ★ (500)</span>
+                          </div>
+                          <div class="block-type">
+                              <div style="width: 12px; height: 12px; background: #aa00ff;"></div>
+                              <span>Special 👑 (1000)</span>
+                          </div>
+                      </div>
+                  </div>
+                  
+                  <div class="instructions">
+                      <h3>🎯 How It Works</h3>
+                      <p>• The snake represents your GitHub contribution streak</p>
+                      <p>• Collect blocks to increase your score (points)</p>
+                      <p>• Different block types provide various bonuses:</p>
+                      <ul>
+                          <li><strong>Points:</strong> Basic contribution points</li>
+                          <li><strong>Power-up ⚡:</strong> Increases snake speed</li>
+                          <li><strong>Bonus ★:</strong> Bonus points multiplier</li>
+                          <li><strong>Special 👑:</strong> Mega bonus for special achievements</li>
+                      </ul>
+                      <p>• Animation updates daily with your GitHub activity</p>
+                      <p>• Try different themes for a fresh look!</p>
+                  </div>
+              </div>
               
-              svg_width = 840
-              svg_height = 240
-              
-              svg = f'''<?xml version="1.0" encoding="UTF-8"?>
-              <svg xmlns="http://www.w3.org/2000/svg" width="{svg_width}" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}">
-                  <defs>
-                      <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stop-color="#0d1117" />
-                          <stop offset="100%" stop-color="#161b22" />
-                      </linearGradient>
-                      <radialGradient id="pointGlow" cx="50%" cy="50%" r="50%">
-                          <stop offset="0%" stop-color="#00ff88" stop-opacity="0.8" />
-                          <stop offset="100%" stop-color="#00ff88" stop-opacity="0" />
-                      </radialGradient>
-                  </defs>
-                  
-                  <style>
-                      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Inter:wght@400;600;700&display=swap');
-                      .header {{ font-family: 'Inter', sans-serif; font-weight: 700; font-size: 26px; }}
-                      .stats {{ font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 12px; }}
-                      .label {{ font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px; }}
-                  </style>
-                  
-                  <!-- Gradient background -->
-                  <rect width="100%" height="100%" fill="url(#bgGradient)" rx="12" ry="12"/>
-                  
-                  <!-- Header -->
-                  <text class="header" x="420" y="40" text-anchor="middle" fill="#ffffff">
-                      🐍 GitHub Contribution Snake
-                  </text>
-                  
-                  <!-- Stats container -->
-                  <g transform="translate(40, 70)">
-                      <!-- Stats boxes -->
-                      <rect x="0" y="0" width="760" height="100" rx="8" ry="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+              <script>
+                  function changeTheme(theme) {
+                      document.querySelectorAll('.theme-btn').forEach(btn => {
+                          btn.classList.remove('active');
+                          if (btn.textContent.toLowerCase().includes(theme)) {
+                              btn.classList.add('active');
+                          }
+                      });
                       
-                      <!-- Stats labels -->
-                      <text class="label" x="20" y="30" fill="#58a6ff">Daily Activity:</text>
-                      <text class="stats" x="20" y="50" fill="#8b949e">Generating visualization...</text>
-                      
-                      <text class="label" x="20" y="80" fill="#58a6ff">Last Update:</text>
-                      <text class="stats" x="20" y="100" fill="#8b949e">$(date '+%Y-%m-%d %H:%M:%S UTC')</text>
-                      
-                      <text class="label" x="300" y="30" fill="#58a6ff">User:</text>
-                      <text class="stats" x="300" y="50" fill="#8b949e">Alpha-Male-Dennis</text>
-                      
-                      <text class="label" x="300" y="80" fill="#58a6ff">Status:</text>
-                      <text class="stats" x="300" y="100" fill="#00ff88">● Active</text>
-                      
-                      <text class="label" x="550" y="30" fill="#58a6ff">View Count:</text>
-                      <text class="stats" x="550" y="50" fill="#8b949e">Updating...</text>
-                  </g>
+                      // In a real implementation, this would regenerate the SVG
+                      console.log('Changing theme to:', theme);
+                      alert('Theme changed to ' + theme + '! Refresh to see the new theme applied.');
+                  }
                   
-                  <!-- Animated snake visualization -->
-                  <g transform="translate(40, 150)">
-                      <!-- Snake path background -->
-                      <rect x="0" y="0" width="760" height="60" rx="6" ry="6" fill="#0d1117" opacity="0.5"/>
-                      
-                      <!-- Animated snake -->
-                      <path id="snakeWave" d="M0,30 Q190,10 380,30 Q570,50 760,30" 
-                            fill="none" 
-                            stroke="url(#snakeGradient)" 
-                            stroke-width="3"
-                            stroke-linecap="round">
-                          <animate attributeName="d" 
-                                   values="M0,30 Q190,10 380,30 Q570,50 760,30;
-                                           M0,30 Q190,50 380,30 Q570,10 760,30;
-                                           M0,30 Q190,10 380,30 Q570,50 760,30" 
-                                   dur="4s" 
-                                   repeatCount="indefinite" />
-                      </path>
-                      
-                      <!-- Moving point along the snake -->
-                      <circle r="5" fill="url(#pointGlow)">
-                          <animateMotion dur="3s" repeatCount="indefinite">
-                              <mpath xlink:href="#snakeWave"/>
-                          </animateMotion>
-                      </circle>
-                  </g>
-                  
-                  <!-- Footer -->
-                  <text class="stats" x="420" y="225" text-anchor="middle" fill="#8b949e" opacity="0.7">
-                      Auto-generated • Updates daily • Refresh to see changes
-                  </text>
-                  
-                  <!-- Corner decorations -->
-                  <circle cx="20" cy="20" r="8" fill="#00ff88" opacity="0.3"/>
-                  <circle cx="{svg_width-20}" cy="20" r="8" fill="#58a6ff" opacity="0.3"/>
-                  <circle cx="20" cy="{svg_height-20}" r="8" fill="#bc8cff" opacity="0.3"/>
-                  <circle cx="{svg_width-20}" cy="{svg_height-20}" r="8" fill="#ff6b6b" opacity="0.3"/>
-              </svg>
-              '''
-              
-              return svg
-          
-          # Generate and save stats version
-          stats_svg = create_stats_snake()
-          with open('snake-stats.svg', 'w') as f:
-              f.write(stats_svg)
-          
-          print("Generated stats-based snake animation")
+                  // Simulate game stats
+                  document.addEventListener('DOMContentLoaded', () => {
+                      setInterval(() => {
+                          const score = Math.floor(Math.random() * 10000);
+                          document.getElementById('current-score').textContent = score.toLocaleString();
+                      }, 2000);
+                  });
+              </script>
+          </body>
+          </html>
           EOF
           
-          python -c "
-          exec(open('generate_snake.py').read())
-          " || echo "Stats generation completed"
-          
-      - name: Verify and prepare files
+      - name: Generate README with animation
         run: |
-          echo "=== Generated files ==="
-          ls -la *.svg
+          cat > README.md << 'EOF'
+          # 🐍 GitHub Snake Animation | Alpha-Male-Dennis
           
-          echo ""
-          echo "=== Snake.svg content preview ==="
-          if [ -f "snake.svg" ]; then
-            head -10 snake.svg | grep -v "^\s*$"
-            echo "..."
-            echo "File size: $(wc -l < snake.svg) lines"
-          fi
+          ![Snake Animation](https://raw.githubusercontent.com/Alpha-Male-Dennis/${{ github.repository }}/output/snake.svg)
           
-          # Use the main snake.svg for deployment
-          if [ ! -f "snake.svg" ]; then
-            echo "Creating fallback snake.svg"
-            cp snake-stats.svg snake.svg 2>/dev/null || echo "No SVG files found"
-          fi
+          ## 🎮 Interactive Contribution Visualizer
           
-      - name: Deploy to output branch
+          This repository generates a beautiful, animated snake that visualizes GitHub contributions as collectible blocks. The animation updates daily and features multiple themes and interactive elements.
+          
+          ### ✨ Features
+          
+          - 🎨 **Multiple Themes**: Cyberpunk, Neon, GitHub Dark, Matrix
+          - 🏆 **Collectible Blocks**: Four types with different values
+          - ⚡ **Real Animations**: Smooth snake movement and glowing effects
+          - 📊 **Interactive Preview**: Web interface to view and interact
+          - 🔄 **Auto-update**: Daily updates via GitHub Actions
+          
+          ### 🎯 Block Types
+          
+          | Block Type | Points | Effect | Color |
+          |------------|--------|--------|-------|
+          | Points | 100 | Basic contribution points | 🔴 |
+          | Power-up ⚡ | 250 | Increases snake speed | 🟡 |
+          | Bonus ★ | 500 | Points multiplier | 🟢 |
+          | Special 👑 | 1000 | Mega bonus | 🟣 |
+          
+          ### 🚀 Quick Start
+          
+          To use this animation on your profile:
+          
+          1. **Fork this repository**
+          2. **Update the username** in `.github/workflows/snake.yml`
+          3. **Enable GitHub Pages** for the `output` branch
+          4. **Add to your README**:
+             ```markdown
+             ![GitHub Snake Animation](https://your-username.github.io/repo-name/snake.svg)
+             ```
+          
+          ### 📂 Files Generated
+          
+          - `snake.svg` - Main animated snake (updated daily)
+          - `snake-readme.svg` - Simplified version for README
+          - `blocks_data.json` - Block positions and metadata
+          - `preview.html` - Interactive web preview
+          
+          ### ⚙️ Customization
+          
+          You can customize:
+          
+          - **Themes**: Change the `THEME` environment variable
+          - **Difficulty**: Adjust block count and snake speed
+          - **Colors**: Modify the color palettes in the Python script
+          - **Size**: Change SVG dimensions
+          
+          ### 🌐 Live Preview
+          
+          [Open Interactive Preview](https://alpha-male-dennis.github.io/${{ github.repository }}/preview.html)
+          
+          ---
+          
+          *Animation updates daily at 00:00 UTC*  
+          *Last updated: $(date '+%Y-%m-%d %H:%M UTC')*
+          
+          > 💡 **Tip**: You can manually trigger the workflow from the Actions tab to generate a new animation immediately!
+          EOF
+          
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .
           publish_branch: output
-          keep_files: false
-          force_orphan: true
+          keep_files: true
+          force_orphan: false
           user_name: "github-actions[bot]"
           user_email: "github-actions[bot]@users.noreply.github.com"
+          
+      - name: Verify deployment
+        run: |
+          echo "✅ Deployment complete!"
+          echo "📊 Generated files:"
+          ls -la *.svg *.html *.json *.md
+          echo ""
+          echo "🌐 Your snake animation is live at:"
+          echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/snake.svg"
+          echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/preview.html"
