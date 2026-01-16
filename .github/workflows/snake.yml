@@ -31,6 +31,9 @@ jobs:
 
       - name: Check if output branch exists and prepare
         run: |
+          # Remove the dist directory if it exists
+          rm -rf dist
+          
           if git ls-remote --exit-code --heads origin output; then
             echo "Output branch exists"
             git fetch origin output
@@ -42,12 +45,19 @@ jobs:
 
       - name: Move generated files
         run: |
-          # Move the generated snake.svg to root of dist
-          if [ -f dist/github-contribution-grid-snake.svg ]; then
+          # Copy the generated snake.svg from the snk output
+          # The Platane/snk action outputs to the root dist directory
+          # So we need to find where it actually placed the files
+          if [ -f github-contribution-grid-snake.svg ]; then
+            cp github-contribution-grid-snake.svg dist/snake.svg
+          elif [ -f dist/github-contribution-grid-snake.svg ]; then
             cp dist/github-contribution-grid-snake.svg dist/snake.svg
           fi
           
-          # List files in dist for debugging
+          # List files for debugging
+          echo "Current directory contents:"
+          ls -la
+          echo "Dist directory contents:"
           ls -la dist/
 
       - name: Deploy to output branch
@@ -56,6 +66,3 @@ jobs:
           branch: output
           folder: dist
           clean: true
-          clean-exclude: |
-            .git
-            .gitignore
