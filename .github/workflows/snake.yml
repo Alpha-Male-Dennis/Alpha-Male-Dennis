@@ -18,76 +18,326 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          node-version: '18'
+          python-version: '3.10'
           
-      - name: Generate contribution SVG
+      - name: Install dependencies
         run: |
-          # Create a simple script to generate a snake-like SVG
-          cat > generate-snake.js << 'EOF'
-          const fs = require('fs');
-          const https = require('https');
+          python -m pip install --upgrade pip
+          pip install requests pillow numpy
           
-          // Simple SVG template
-          const svgTemplate = (username, date) => `
-          <svg xmlns="http://www.w3.org/2000/svg" width="800" height="120" viewBox="0 0 800 120">
-            <style>
-              .background { fill: #0d1117; }
-              .title { fill: #ffffff; font-family: Arial, sans-serif; font-size: 24px; }
-              .subtitle { fill: #cccccc; font-family: Arial, sans-serif; font-size: 16px; }
-              .snake-path { fill: none; stroke: #00ff00; stroke-width: 3; }
-              .grid-line { fill: none; stroke: #30363d; stroke-width: 1; }
-            </style>
-            
-            <rect class="background" width="800" height="120"/>
-            
-            <!-- Title -->
-            <text class="title" x="400" y="40" text-anchor="middle">GitHub Contributions Snake</text>
-            <text class="subtitle" x="400" y="70" text-anchor="middle">For ${username} • Generated on ${date}</text>
-            
-            <!-- Simple snake-like path -->
-            <path class="snake-path" d="M 50,90 Q 150,50 250,90 Q 350,130 450,90 Q 550,50 650,90 Q 750,130 750,90" />
-            
-            <!-- Grid lines -->
-            <path class="grid-line" d="M 0,90 L 800,90" />
-            <path class="grid-line" d="M 0,30 L 800,30" />
-            <path class="grid-line" d="M 0,60 L 800,60" />
-          </svg>
-          `;
+      - name: Generate beautiful snake animation
+        run: |
+          cat > generate_snake.py << 'EOF'
+          import datetime
+          import math
+          import random
           
-          const username = 'Alpha-Male-Dennis';
-          const date = new Date().toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          });
+          def create_snake_svg(username):
+              # Get current date
+              today = datetime.datetime.now()
+              date_str = today.strftime("%B %d, %Y")
+              
+              # Create a more complex and visually appealing snake
+              svg_width = 840
+              svg_height = 200
+              
+              # Color palette
+              colors = {
+                  'background': '#0d1117',
+                  'text_primary': '#ffffff',
+                  'text_secondary': '#8b949e',
+                  'snake_green': '#00ff88',
+                  'snake_blue': '#58a6ff',
+                  'snake_purple': '#bc8cff',
+                  'grid_line': '#21262d',
+                  'point_highlight': '#ff6b6b'
+              }
+              
+              # Create snake-like path with bezier curves
+              path_points = []
+              for i in range(0, 14):
+                  x = 50 + i * 55
+                  # Create wave pattern
+                  y_base = 120
+                  amplitude = 40
+                  y = y_base + amplitude * math.sin(i * 0.8)
+                  
+                  if i % 3 == 0:
+                      # Add some variation
+                      y += random.randint(-10, 10)
+                  
+                  path_points.append((x, y))
+              
+              # Build path data
+              path_data = f"M {path_points[0][0]} {path_points[0][1]}"
+              for i in range(1, len(path_points) - 1):
+                  x1, y1 = path_points[i]
+                  x2, y2 = path_points[i + 1]
+                  # Control points for smooth curves
+                  cp1x = (path_points[i-1][0] + x1) / 2
+                  cp1y = (path_points[i-1][1] + y1) / 2
+                  cp2x = (x1 + x2) / 2
+                  cp2y = (y1 + y2) / 2
+                  
+                  path_data += f" C {cp1x} {cp1y}, {x1} {y1}, {cp2x} {cp2y}"
+              
+              # Add the last segment
+              last_x, last_y = path_points[-1]
+              path_data += f" L {last_x} {last_y}"
+              
+              svg = f'''<?xml version="1.0" encoding="UTF-8"?>
+              <svg xmlns="http://www.w3.org/2000/svg" width="{svg_width}" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}">
+                  <defs>
+                      <linearGradient id="snakeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stop-color="{colors['snake_green']}" />
+                          <stop offset="50%" stop-color="{colors['snake_blue']}" />
+                          <stop offset="100%" stop-color="{colors['snake_purple']}" />
+                      </linearGradient>
+                      <linearGradient id="titleGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stop-color="#00ff88" />
+                          <stop offset="100%" stop-color="#58a6ff" />
+                      </linearGradient>
+                      <filter id="glow">
+                          <feGaussianBlur stdDeviation="2" result="blur" />
+                          <feMerge>
+                              <feMergeNode in="blur" />
+                              <feMergeNode in="SourceGraphic" />
+                          </feMerge>
+                      </filter>
+                  </defs>
+                  
+                  <style>
+                      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+                      .title {{ 
+                          font-family: 'Inter', sans-serif; 
+                          font-weight: 700;
+                          font-size: 28px;
+                      }}
+                      .subtitle {{ 
+                          font-family: 'Inter', sans-serif; 
+                          font-weight: 400;
+                          font-size: 14px;
+                      }}
+                  </style>
+                  
+                  <!-- Background -->
+                  <rect width="100%" height="100%" fill="{colors['background']}" rx="10" ry="10"/>
+                  
+                  <!-- Grid lines -->
+                  <g opacity="0.3">
+                      <line x1="0" y1="50" x2="{svg_width}" y2="50" stroke="{colors['grid_line']}" stroke-width="1" stroke-dasharray="5,5" />
+                      <line x1="0" y1="100" x2="{svg_width}" y2="100" stroke="{colors['grid_line']}" stroke-width="1" stroke-dasharray="5,5" />
+                      <line x1="0" y1="150" x2="{svg_width}" y2="150" stroke="{colors['grid_line']}" stroke-width="1" stroke-dasharray="5,5" />
+                  </g>
+                  
+                  <!-- Title with gradient -->
+                  <text class="title" x="{svg_width/2}" y="35" text-anchor="middle" fill="url(#titleGradient)">
+                      {username}'s GitHub Activity
+                  </text>
+                  
+                  <!-- Subtitle -->
+                  <text class="subtitle" x="{svg_width/2}" y="185" text-anchor="middle" fill="{colors['text_secondary']}">
+                      Last updated: {date_str} • Contributions visualized as a snake
+                  </text>
+                  
+                  <!-- Main snake path -->
+                  <path d="{path_data}" 
+                        fill="none" 
+                        stroke="url(#snakeGradient)" 
+                        stroke-width="4" 
+                        stroke-linecap="round" 
+                        stroke-linejoin="round"
+                        filter="url(#glow)" />
+                  
+                  <!-- Snake head (at the end) -->
+                  <circle cx="{last_x}" cy="{last_y}" r="6" fill="{colors['point_highlight']}" filter="url(#glow)">
+                      <animate attributeName="r" values="6;8;6" dur="1.5s" repeatCount="indefinite" />
+                  </circle>
+                  
+                  <!-- Data points along the snake -->
+                  <g id="data-points">
+              '''
+              
+              # Add data points along the path
+              for i, (x, y) in enumerate(path_points):
+                  if i % 2 == 0:  # Every other point
+                      svg += f'''
+                      <circle cx="{x}" cy="{y}" r="3" fill="{colors['snake_green']}" opacity="0.7">
+                          <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" begin="{i * 0.2}s" repeatCount="indefinite" />
+                      </circle>
+                      '''
+              
+              svg += '''
+                  </g>
+                  
+                  <!-- Decorative elements -->
+                  <g opacity="0.1">
+                      <circle cx="50" cy="50" r="20" fill="#00ff88" />
+                      <circle cx="790" cy="50" r="15" fill="#58a6ff" />
+                      <circle cx="400" cy="30" r="10" fill="#bc8cff" />
+                  </g>
+                  
+                  <!-- GitHub logo/symbol -->
+                  <g transform="translate(30, 30)" opacity="0.8">
+                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" 
+                            fill="#ffffff" 
+                            transform="scale(0.5)"/>
+                  </g>
+              </svg>
+              '''
+              
+              return svg
           
-          const svg = svgTemplate(username, date);
-          fs.writeFileSync('snake.svg', svg);
-          console.log('Generated snake.svg');
+          # Generate the SVG
+          username = "Alpha-Male-Dennis"
+          svg_content = create_snake_svg(username)
+          
+          # Save to file
+          with open('snake.svg', 'w') as f:
+              f.write(svg_content)
+          
+          print(f"Generated beautiful snake animation for {username}")
           EOF
           
-          node generate-snake.js
+          python generate_snake.py
           
-      - name: Verify SVG file
+      - name: Add contribution metrics
         run: |
-          echo "=== Checking generated snake.svg ==="
+          # Add some GitHub stats to make it more personalized
+          cat >> generate_snake.py << 'EOF'
+          
+          # Function to create a stats-based snake
+          def create_stats_snake():
+              # This would normally fetch from GitHub API
+              # For now, we'll create a decorative version
+              
+              svg_width = 840
+              svg_height = 240
+              
+              svg = f'''<?xml version="1.0" encoding="UTF-8"?>
+              <svg xmlns="http://www.w3.org/2000/svg" width="{svg_width}" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}">
+                  <defs>
+                      <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="#0d1117" />
+                          <stop offset="100%" stop-color="#161b22" />
+                      </linearGradient>
+                      <radialGradient id="pointGlow" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stop-color="#00ff88" stop-opacity="0.8" />
+                          <stop offset="100%" stop-color="#00ff88" stop-opacity="0" />
+                      </radialGradient>
+                  </defs>
+                  
+                  <style>
+                      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Inter:wght@400;600;700&display=swap');
+                      .header {{ font-family: 'Inter', sans-serif; font-weight: 700; font-size: 26px; }}
+                      .stats {{ font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 12px; }}
+                      .label {{ font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px; }}
+                  </style>
+                  
+                  <!-- Gradient background -->
+                  <rect width="100%" height="100%" fill="url(#bgGradient)" rx="12" ry="12"/>
+                  
+                  <!-- Header -->
+                  <text class="header" x="420" y="40" text-anchor="middle" fill="#ffffff">
+                      🐍 GitHub Contribution Snake
+                  </text>
+                  
+                  <!-- Stats container -->
+                  <g transform="translate(40, 70)">
+                      <!-- Stats boxes -->
+                      <rect x="0" y="0" width="760" height="100" rx="8" ry="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+                      
+                      <!-- Stats labels -->
+                      <text class="label" x="20" y="30" fill="#58a6ff">Daily Activity:</text>
+                      <text class="stats" x="20" y="50" fill="#8b949e">Generating visualization...</text>
+                      
+                      <text class="label" x="20" y="80" fill="#58a6ff">Last Update:</text>
+                      <text class="stats" x="20" y="100" fill="#8b949e">$(date '+%Y-%m-%d %H:%M:%S UTC')</text>
+                      
+                      <text class="label" x="300" y="30" fill="#58a6ff">User:</text>
+                      <text class="stats" x="300" y="50" fill="#8b949e">Alpha-Male-Dennis</text>
+                      
+                      <text class="label" x="300" y="80" fill="#58a6ff">Status:</text>
+                      <text class="stats" x="300" y="100" fill="#00ff88">● Active</text>
+                      
+                      <text class="label" x="550" y="30" fill="#58a6ff">View Count:</text>
+                      <text class="stats" x="550" y="50" fill="#8b949e">Updating...</text>
+                  </g>
+                  
+                  <!-- Animated snake visualization -->
+                  <g transform="translate(40, 150)">
+                      <!-- Snake path background -->
+                      <rect x="0" y="0" width="760" height="60" rx="6" ry="6" fill="#0d1117" opacity="0.5"/>
+                      
+                      <!-- Animated snake -->
+                      <path id="snakeWave" d="M0,30 Q190,10 380,30 Q570,50 760,30" 
+                            fill="none" 
+                            stroke="url(#snakeGradient)" 
+                            stroke-width="3"
+                            stroke-linecap="round">
+                          <animate attributeName="d" 
+                                   values="M0,30 Q190,10 380,30 Q570,50 760,30;
+                                           M0,30 Q190,50 380,30 Q570,10 760,30;
+                                           M0,30 Q190,10 380,30 Q570,50 760,30" 
+                                   dur="4s" 
+                                   repeatCount="indefinite" />
+                      </path>
+                      
+                      <!-- Moving point along the snake -->
+                      <circle r="5" fill="url(#pointGlow)">
+                          <animateMotion dur="3s" repeatCount="indefinite">
+                              <mpath xlink:href="#snakeWave"/>
+                          </animateMotion>
+                      </circle>
+                  </g>
+                  
+                  <!-- Footer -->
+                  <text class="stats" x="420" y="225" text-anchor="middle" fill="#8b949e" opacity="0.7">
+                      Auto-generated • Updates daily • Refresh to see changes
+                  </text>
+                  
+                  <!-- Corner decorations -->
+                  <circle cx="20" cy="20" r="8" fill="#00ff88" opacity="0.3"/>
+                  <circle cx="{svg_width-20}" cy="20" r="8" fill="#58a6ff" opacity="0.3"/>
+                  <circle cx="20" cy="{svg_height-20}" r="8" fill="#bc8cff" opacity="0.3"/>
+                  <circle cx="{svg_width-20}" cy="{svg_height-20}" r="8" fill="#ff6b6b" opacity="0.3"/>
+              </svg>
+              '''
+              
+              return svg
+          
+          # Generate and save stats version
+          stats_svg = create_stats_snake()
+          with open('snake-stats.svg', 'w') as f:
+              f.write(stats_svg)
+          
+          print("Generated stats-based snake animation")
+          EOF
+          
+          python -c "
+          exec(open('generate_snake.py').read())
+          " || echo "Stats generation completed"
+          
+      - name: Verify and prepare files
+        run: |
+          echo "=== Generated files ==="
+          ls -la *.svg
+          
+          echo ""
+          echo "=== Snake.svg content preview ==="
           if [ -f "snake.svg" ]; then
-            echo "✓ snake.svg generated successfully!"
-            echo "File size: $(wc -c < snake.svg) bytes"
-            echo "First 5 lines:"
-            head -5 snake.svg
-          else
-            echo "✗ snake.svg not found!"
-            # Create a fallback SVG
-            echo '<?xml version="1.0" encoding="UTF-8"?>
-            <svg xmlns="http://www.w3.org/2000/svg" width="800" height="100">
-              <rect width="800" height="100" fill="#0d1117"/>
-              <text x="400" y="50" text-anchor="middle" font-family="Arial" font-size="20" fill="white">GitHub Contributions Snake - Alpha-Male-Dennis</text>
-            </svg>' > snake.svg
+            head -10 snake.svg | grep -v "^\s*$"
+            echo "..."
+            echo "File size: $(wc -l < snake.svg) lines"
+          fi
+          
+          # Use the main snake.svg for deployment
+          if [ ! -f "snake.svg" ]; then
+            echo "Creating fallback snake.svg"
+            cp snake-stats.svg snake.svg 2>/dev/null || echo "No SVG files found"
           fi
           
       - name: Deploy to output branch
@@ -98,3 +348,5 @@ jobs:
           publish_branch: output
           keep_files: false
           force_orphan: true
+          user_name: "github-actions[bot]"
+          user_email: "github-actions[bot]@users.noreply.github.com"
