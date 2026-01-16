@@ -70,3 +70,48 @@
   <img width="12" />
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/sqlite/sqlite-original.svg" height="60" alt="SQLite logo"  />
 </div>
+
+## 📊 GitHub Stats
+
+<div align="center">
+  
+  ![](https://github-readme-streak-stats.herokuapp.com/?user=Alpha-Male-Dennis&theme=radical&hide_border=false)<br/>
+  ![](https://github-readme-stats.vercel.app/api/top-langs/?username=Alpha-Male-Dennis&theme=radical&hide_border=false&include_all_commits=true&count_private=true&layout=compact)
+  
+</div>
+
+## 🐍 Contribution Snake
+
+<div align="center">
+  
+  <!-- Snake Animation - This will work after workflow runs -->
+  ![Snake animation](https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/output/github-contribution-grid-snake.svg)
+  
+</div>
+
+<div align="center">
+  
+  ![](https://github-readme-stats.vercel.app/api?username=Alpha-Male-Dennis&theme=radical&hide_border=false&include_all_commits=true&count_private=true)
+  
+</div>
+
+## 📈 Contribution Graph
+
+<div align="center">
+  
+  [![Ashutosh's github activity graph](https://github-readme-activity-graph.vercel.app/graph?username=Alpha-Male-Dennis&theme=react-dark)](https://github.com/ashutosh00710/github-readme-activity-graph)
+  
+</div>
+
+## 🏆 GitHub Trophies
+
+<div align="center">
+  
+  ![](https://github-profile-trophy.vercel.app/?username=Alpha-Male-Dennis&theme=radical&no-frame=false&no-bg=true&margin-w=4)
+  
+</div>
+
+---
+<div align="center">
+  <img src="https://komarev.com/ghpvc/?username=Alpha-Male-Dennis&label=Profile%20views&color=0e75b6&style=flat" alt="Profile views" />
+</div>
