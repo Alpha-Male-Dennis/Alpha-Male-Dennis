@@ -2,7 +2,6 @@ name: Generate Snake Animation
 
 on:
   schedule:
-    # Runs at 00:00 UTC every day
     - cron: "0 0 * * *"
   workflow_dispatch:
   push:
@@ -25,19 +24,45 @@ jobs:
         uses: Platane/snk@v3
         with:
           github_user_name: Alpha-Male-Dennis
-          # Output directly to snake.svg (simpler approach)
-          svg_out_path: snake.svg
+          # Try different output format
+          outputs: |
+            snake.svg
 
-      - name: Setup output directory
+      - name: Debug - Check what files were created
         run: |
-          # Create a clean output directory
+          echo "=== Listing all files in directory ==="
+          ls -la
+          echo ""
+          echo "=== Checking for snake.svg ==="
+          if [ -f "snake.svg" ]; then
+            echo "✓ snake.svg exists!"
+            echo "File size: $(wc -l < snake.svg) lines"
+            echo "First 3 lines:"
+            head -3 snake.svg
+          else
+            echo "✗ snake.svg NOT found!"
+            echo "Looking for any SVG files..."
+            find . -name "*.svg" -type f 2>/dev/null || echo "No SVG files found"
+          fi
+
+      - name: Create and populate output directory
+        run: |
+          # Clean and create output directory
           rm -rf output_dir
           mkdir -p output_dir
           
-          # Move the generated snake.svg to the output directory
-          if [ -f snake.svg ]; then
-            mv snake.svg output_dir/
+          # Copy snake.svg if it exists
+          if [ -f "snake.svg" ]; then
+            echo "Copying snake.svg to output_dir/"
+            cp snake.svg output_dir/
+          else
+            echo "ERROR: snake.svg not found!"
+            echo "Creating a placeholder file for debugging..."
+            echo '<!-- Placeholder SVG - snake.svg was not generated --><svg xmlns="http://www.w3.org/2000/svg" width="400" height="100"><text x="20" y="50" font-family="Arial" font-size="20">Snake SVG not generated</text></svg>' > output_dir/snake.svg
           fi
+          
+          echo "=== Contents of output_dir ==="
+          ls -la output_dir/
 
       - name: Deploy to output branch
         uses: JamesIves/github-pages-deploy-action@v4
