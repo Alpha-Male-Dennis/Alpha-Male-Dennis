@@ -1,8 +1,7 @@
-name: Generate Snake Animation
+name: Generate Snake
 
 on:
   schedule:
-    # Runs at 00:00 UTC every day
     - cron: "0 0 * * *"
   workflow_dispatch:
   push:
@@ -10,108 +9,24 @@ on:
       - main
 
 jobs:
-  generate:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
         
-      - name: Generate Standard Snake
+      - name: Generate Snake
         uses: Platane/snk@master
-        id: snake-gif
         with:
           github_user_name: Alpha-Male-Dennis
           outputs: |
             dist/github-contribution-grid-snake.svg
             dist/github-contribution-grid-snake.gif
-          # Customize colors for a 3D effect
-          color_snake: "#3b82f6"
-          color_dots: "#1e293b:#334155:#475569:#64748b:#94a3b8:#cbd5e1"
           
-      - name: Generate Dark Theme Snake
-        uses: Platane/snk@master
-        with:
-          github_user_name: Alpha-Male-Dennis
-          outputs: |
-            dist/snake-dark.svg
-            dist/snake-dark.gif
-          color_snake: "#8b5cf6"
-          color_dots: "#0f172a:#1e293b:#334155"
-          
-      - name: Generate Gradient Snake
-        uses: Platane/snk@master
-        with:
-          github_user_name: Alpha-Male-Dennis
-          outputs: |
-            dist/snake-gradient.svg
-            dist/snake-gradient.gif
-          color_snake: "linear-gradient(90deg, #10b981, #3b82f6)"
-          color_dots: "#1e293b:#334155:#475569"
-          
-      - name: Create README Preview
-        run: |
-          mkdir -p dist
-          cat > dist/snake-preview.svg << 'EOF'
-          <svg width="800" height="200" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-                <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
-              </linearGradient>
-            </defs>
-            <rect width="800" height="200" fill="#0f172a" rx="10"/>
-            <text x="400" y="80" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">
-              Contribution Graph Snake
-            </text>
-            <text x="400" y="120" text-anchor="middle" fill="url(#gradient)" font-family="Arial, sans-serif" font-size="18">
-              Updated daily via GitHub Actions
-            </text>
-            <text x="400" y="160" text-anchor="middle" fill="#94a3b8" font-family="Arial, sans-serif" font-size="14">
-              View live animation in README
-            </text>
-          </svg>
-          EOF
-          
-      - name: Deploy to Output Branch
+      - name: Deploy to GitHub Pages Branch
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: output
           folder: dist
           clean: true
-          commit-message: "🐍 Update snake animation"
-
-  update-readme:
-    runs-on: ubuntu-latest
-    needs: generate
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
-    
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-        
-      - name: Update README with Snake Status
-        run: |
-          # Get current date
-          CURRENT_DATE=$(date +"%Y-%m-%d %H:%M:%S UTC")
-          
-          # Create a temporary README
-          cp README.md README.md.temp
-          
-          # Check if timestamp already exists
-          if ! grep -q "Snake last updated:" README.md; then
-            # Insert timestamp after the snake section header
-            awk '/## 🐍 Contribution Snake/ {print; print ""; print "<!-- Snake last updated: '"$CURRENT_DATE"' -->"; next} 1' README.md.temp > README.md
-          else
-            # Update existing timestamp
-            sed -i "s|<!-- Snake last updated: .* -->|<!-- Snake last updated: $CURRENT_DATE -->|" README.md
-          fi
-          
-          rm README.md.temp
-          
-      - name: Commit README Updates
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: "📝 Update README with snake status"
-          file_pattern: README.md
