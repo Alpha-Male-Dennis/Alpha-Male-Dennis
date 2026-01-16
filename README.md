@@ -103,11 +103,12 @@
   
 </div>
 
-## 🏆 GitHub Trophies
+## 🏆 GitHub Achievements
 
 <div align="center">
   
-  ![](https://github-profile-trophy.vercel.app/?username=Alpha-Male-Dennis&theme=radical&no-frame=false&no-bg=true&margin-w=4)
+  [![Pull Shark](https://img.shields.io/badge/Pull%20Shark-2%2B%20PRs%20Merged-blue?style=for-the-badge&logo=github)](https://github.com/Alpha-Male-Dennis?tab=achievements)
+  [![GitHub Achievements](https://img.shields.io/badge/GitHub%20Achievements-Check%20them%20out!-purple?style=for-the-badge&logo=github)](https://github.com/Alpha-Male-Dennis?tab=achievements)
   
 </div>
 
