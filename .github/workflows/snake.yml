@@ -18,7 +18,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
         
-      - name: Generate GitHub Contribution Snake
+      - name: Generate Standard Snake
         uses: Platane/snk@master
         id: snake-gif
         with:
@@ -28,31 +28,33 @@ jobs:
             dist/github-contribution-grid-snake.gif
           # Customize colors for a 3D effect
           color_snake: "#3b82f6"
-          color_dots: |
-            #1e293b:#334155:#475569
-            #64748b:#94a3b8:#cbd5e1
+          color_dots: "#1e293b:#334155:#475569:#64748b:#94a3b8:#cbd5e1"
           
       - name: Generate Dark Theme Snake
         uses: Platane/snk@master
         with:
           github_user_name: Alpha-Male-Dennis
           outputs: |
-            dist/snake-dark.svg?color_snake=#8b5cf6&color_dots=#0f172a,#1e293b,#334155
-            dist/snake-dark.gif?color_snake=#8b5cf6&color_dots=#0f172a,#1e293b,#334155&animation_duration=10
+            dist/snake-dark.svg
+            dist/snake-dark.gif
+          color_snake: "#8b5cf6"
+          color_dots: "#0f172a:#1e293b:#334155"
           
       - name: Generate Gradient Snake
         uses: Platane/snk@master
         with:
           github_user_name: Alpha-Male-Dennis
           outputs: |
-            dist/snake-gradient.svg?color_snake=linear-gradient(90deg, #ff6b35, #fbbf24)&color_dots=#1e293b,#334155,#475569
-            dist/snake-gradient.gif?color_snake=linear-gradient(90deg, #10b981, #3b82f6)&color_dots=#1e293b,#334155,#475569&animation_duration=12
+            dist/snake-gradient.svg
+            dist/snake-gradient.gif
+          color_snake: "linear-gradient(90deg, #10b981, #3b82f6)"
+          color_dots: "#1e293b:#334155:#475569"
           
       - name: Create README Preview
         run: |
           mkdir -p dist
-          # Create a simple preview image with snake info
-          echo '<svg width="800" height="200" xmlns="http://www.w3.org/2000/svg">
+          cat > dist/snake-preview.svg << 'EOF'
+          <svg width="800" height="200" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
@@ -69,7 +71,8 @@ jobs:
             <text x="400" y="160" text-anchor="middle" fill="#94a3b8" font-family="Arial, sans-serif" font-size="14">
               View live animation in README
             </text>
-          </svg>' > dist/snake-preview.svg
+          </svg>
+          EOF
           
       - name: Deploy to Output Branch
         uses: JamesIves/github-pages-deploy-action@v4
@@ -77,11 +80,7 @@ jobs:
           branch: output
           folder: dist
           clean: true
-          clean-exclude: |
-            *.svg
-            *.gif
-            *.png
-          commit-message: "🐍 Update snake animation - $(date)"
+          commit-message: "🐍 Update snake animation"
 
   update-readme:
     runs-on: ubuntu-latest
@@ -97,17 +96,19 @@ jobs:
           # Get current date
           CURRENT_DATE=$(date +"%Y-%m-%d %H:%M:%S UTC")
           
-          # Update README with timestamp
-          sed -i '/## 🐍 Contribution Snake/i\
-<!-- Snake last updated: '"$CURRENT_DATE"' -->\
-' README.md
+          # Create a temporary README
+          cp README.md README.md.temp
           
-          # Add note about automatic updates
-          sed -i '/## 🐍 Contribution Snake/a\
-<div align="center" style="margin-top: -20px; margin-bottom: 20px;">\
-  <small>🔄 Auto-updates daily • 🎨 Multiple themes • 📊 Real-time contributions</small>\
-</div>\
-' README.md
+          # Check if timestamp already exists
+          if ! grep -q "Snake last updated:" README.md; then
+            # Insert timestamp after the snake section header
+            awk '/## 🐍 Contribution Snake/ {print; print ""; print "<!-- Snake last updated: '"$CURRENT_DATE"' -->"; next} 1' README.md.temp > README.md
+          else
+            # Update existing timestamp
+            sed -i "s|<!-- Snake last updated: .* -->|<!-- Snake last updated: $CURRENT_DATE -->|" README.md
+          fi
+          
+          rm README.md.temp
           
       - name: Commit README Updates
         uses: stefanzweifel/git-auto-commit-action@v4
