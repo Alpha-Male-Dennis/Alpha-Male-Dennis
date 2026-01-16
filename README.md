@@ -107,7 +107,7 @@
 
 <div align="center">
   
-  [![Pull Shark](https://img.shields.io/badge/Pull%20Shark-2%2B%20PRs%20Merged-blue?style=for-the-badge&logo=github)](https://github.com/Alpha-Male-Dennis?tab=achievements)
+  [![Pull Shark](https://img.shields.io/badge/dynamic/json?label=Pull%20Shark&query=%24.total_count&url=https%3A%2F%2Fapi.github.com%2Fsearch%2Fissues%3Fq%3Dis%3Apr%2Bis%3Amerged%2Bauthor%3AAlpha-Male-Dennis&logo=github&style=for-the-badge&color=blue&labelColor=000&suffix=%20PRs%20Merged)](https://github.com/search?q=is%3Apr+is%3Amerged+author%3AAlpha-Male-Dennis)
   [![GitHub Achievements](https://img.shields.io/badge/GitHub%20Achievements-Check%20them%20out!-purple?style=for-the-badge&logo=github)](https://github.com/Alpha-Male-Dennis?tab=achievements)
   
 </div>
