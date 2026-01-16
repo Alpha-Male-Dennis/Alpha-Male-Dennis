@@ -25,44 +25,23 @@ jobs:
         uses: Platane/snk@v3
         with:
           github_user_name: Alpha-Male-Dennis
-          outputs: |
-            dist/github-contribution-grid-snake.svg
-            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
+          # Output directly to snake.svg (simpler approach)
+          svg_out_path: snake.svg
 
-      - name: Check if output branch exists and prepare
+      - name: Setup output directory
         run: |
-          # Remove the dist directory if it exists
-          rm -rf dist
+          # Create a clean output directory
+          rm -rf output_dir
+          mkdir -p output_dir
           
-          if git ls-remote --exit-code --heads origin output; then
-            echo "Output branch exists"
-            git fetch origin output
-            git worktree add dist output
-          else
-            echo "Output branch does not exist"
-            mkdir -p dist
+          # Move the generated snake.svg to the output directory
+          if [ -f snake.svg ]; then
+            mv snake.svg output_dir/
           fi
-
-      - name: Move generated files
-        run: |
-          # Copy the generated snake.svg from the snk output
-          # The Platane/snk action outputs to the root dist directory
-          # So we need to find where it actually placed the files
-          if [ -f github-contribution-grid-snake.svg ]; then
-            cp github-contribution-grid-snake.svg dist/snake.svg
-          elif [ -f dist/github-contribution-grid-snake.svg ]; then
-            cp dist/github-contribution-grid-snake.svg dist/snake.svg
-          fi
-          
-          # List files for debugging
-          echo "Current directory contents:"
-          ls -la
-          echo "Dist directory contents:"
-          ls -la dist/
 
       - name: Deploy to output branch
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: output
-          folder: dist
+          folder: output_dir
           clean: true
