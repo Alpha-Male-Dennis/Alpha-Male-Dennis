@@ -1,4 +1,4 @@
-name: Generate Snake
+name: Generate 3D Snake Animations
 
 on:
   schedule:
@@ -18,28 +18,76 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
         
-      - name: Generate Multiple Snake Animations
+      - name: Generate 3D Themed Snakes
         uses: Platane/snk@v3
         with:
           github_user_name: Alpha-Male-Dennis
           outputs: |
-            # SVG versions with different themes
-            dist/github-contribution-grid-snake.svg
-            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
-            dist/github-contribution-grid-snake-blue.svg?palette=github-dark&color_snake=blue&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7fdc
-            dist/github-contribution-grid-snake-purple.svg?palette=github-dark&color_snake=purple&color_dots=#d8b4fe,#c084fc,#a855f7,#9333ea,#7e22ce
+            # Main 3D Animated GIF (Primary)
+            dist/snake-3d-animated.gif?color_snake=linear-gradient(90deg, #ff6b35, #ff8e53)&color_dots=#2a2d3e,#3a3f5b,#4a5078,#5a6185&size=1000&animation_duration=15&gap=1&radius=8&shadow=true
             
-            # GIF version with animation
-            dist/github-contribution-grid-snake-animated.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7fdc&gap=2&size=800
+            # 3D Neon Glow Theme
+            dist/snake-3d-neon.svg?palette=github-dark&color_snake=#00f5ff&color_dots=#00f5ff,#00d4ff,#00b4ff,#0095ff&size=900&radius=6&glow=true&shadow=true
             
-            # High quality PNG versions
-            dist/github-contribution-grid-snake.png?color_snake=green&color_dots=#86efac,#4ade80,#22c55e,#16a34a,#15803d&size=1200&padding=20
-            dist/github-contribution-grid-snake-dark.png?palette=github-dark&color_snake=cyan&size=1200&padding=20
+            # 3D Cyberpunk Theme
+            dist/snake-3d-cyberpunk.svg?color_snake=linear-gradient(90deg, #ff00ff, #00ffff)&color_dots=#1a1a2e,#16213e,#0f3460,#1e5128&size=950&radius=7&shadow_offset=3
+            
+            # 3D Material Glass Effect
+            dist/snake-3d-glass.svg?color_snake=rgba(255,255,255,0.9)&color_dots=rgba(59,130,246,0.3),rgba(37,99,235,0.4),rgba(29,78,216,0.5),rgba(30,64,175,0.6)&size=850&radius=8&blur=2
+            
+            # 3D Gradient Depth
+            dist/snake-3d-gradient-depth.png?color_snake=linear-gradient(45deg, #667eea, #764ba2)&color_dots=linear-gradient(45deg, #4c51bf, #6b46c1),linear-gradient(45deg, #5a67d8, #805ad5),linear-gradient(45deg, #7e22ce, #a855f7),linear-gradient(45deg, #9333ea, #c084fc)&size=1200&padding=30&radius=10&shadow=true
+            
+            # 3D Floating Cubes Theme
+            dist/snake-3d-cubes.svg?color_snake=#f59e0b&color_dots=#fbbf24,#f59e0b,#d97706,#b45309&size=800&cube_effect=true&perspective=500
+            
+            # 3D Dark Metallic
+            dist/snake-3d-metallic-dark.png?palette=github-dark&color_snake=linear-gradient(135deg, #9ca3af, #6b7280, #4b5563)&color_dots=#1f2937,#374151,#4b5563,#6b7280&size=1100&metal_effect=true&reflection=true
+            
+            # 3D Holographic Theme
+            dist/snake-3d-holographic.svg?color_snake=linear-gradient(90deg, #ff0000, #ff9900, #ffff00, #00ff00, #00ffff, #0000ff, #9900ff)&color_dots=rgba(255,0,0,0.3),rgba(255,153,0,0.3),rgba(255,255,0,0.3),rgba(0,255,0,0.3)&size=1000&hologram_effect=true
+            
+            # 3D Wireframe Theme
+            dist/snake-3d-wireframe.svg?color_snake=#10b981&color_dots=transparent&stroke_width=2&wireframe=true&grid=true&size=750
+            
+            # 3D Isometric View
+            dist/snake-3d-isometric.png?color_snake=#3b82f6&color_dots=#60a5fa,#3b82f6,#2563eb,#1d4ed8&size=1300&isometric=true&angle=30&depth=15
+          
+      - name: Generate Premium 3D Effects
+        uses: Platane/snk@v3
+        with:
+          github_user_name: Alpha-Male-Dennis
+          outputs: |
+            # Premium 3D Animated with particles
+            dist/snake-3d-premium.gif?color_snake=linear-gradient(90deg, #8b5cf6, #ec4899)&color_dots=#1e1b4b,#312e81,#4338ca,#6366f1&size=1200&particles=true&glow_effect=true&animation_duration=20
+            
+            # 3D Crystal Theme
+            dist/snake-3d-crystal.svg?color_snake=rgba(56,189,248,0.8)&color_dots=rgba(56,189,248,0.2),rgba(14,165,233,0.3),rgba(2,132,199,0.4),rgba(3,105,161,0.5)&crystal_effect=true&refraction=true&size=900
+            
+            # 3D Lava Flow Theme
+            dist/snake-3d-lava.png?color_snake=linear-gradient(90deg, #ff7e5f, #feb47b)&color_dots=#ff7e5f,#ff6b6b,#ff5252,#ff3838&size=1100&heat_effect=true&glow_intensity=2
+            
+            # 3D Space Nebula
+            dist/snake-3d-nebula.svg?palette=github-dark&color_snake=linear-gradient(90deg, #9d4edd, #560bad)&color_dots=#10002b,#240046,#3c096c,#5a189a&nebula_effect=true&stars=true&size=1000
+          
+      - name: Generate README Optimized Versions
+        uses: Platane/snk@v3
+        with:
+          github_user_name: Alpha-Male-Dennis
+          outputs: |
+            # For README (Dark Theme)
+            dist/snake-readme-dark.svg?palette=github-dark&color_snake=linear-gradient(90deg, #7c3aed, #10b981)&color_dots=#1e293b,#334155,#475569,#64748b&size=700&compact=true&radius=4
+            
+            # For README (Light Theme)
+            dist/snake-readme-light.svg?palette=github&color_snake=linear-gradient(90deg, #3b82f6, #8b5cf6)&color_dots=#e0e7ff,#c7d2fe,#a5b4fc,#818cf8&size=700&compact=true&radius=4
+            
+            # Banner Version (Wide)
+            dist/snake-banner.png?color_snake=linear-gradient(90deg, #f59e0b, #ef4444)&color_dots=#fef3c7,#fde68a,#fbbf24,#f59e0b&size=1600x400&banner=true&padding=50
         
-      - name: Deploy to Output Branch
+      - name: Deploy All 3D Animations
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: output
           folder: dist
           clean: true
-          commit-message: "Update snake animations with enhanced graphics"
+          commit-message: "🎮 Deploy 3D Snake Animations - $(date +'%Y-%m-%d %H:%M')"
