@@ -18,13 +18,23 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
         
-      - name: Generate Snake
+      - name: Generate Multiple Snake Animations
         uses: Platane/snk@v3
         with:
           github_user_name: Alpha-Male-Dennis
           outputs: |
+            # SVG versions with different themes
             dist/github-contribution-grid-snake.svg
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark
+            dist/github-contribution-grid-snake-blue.svg?palette=github-dark&color_snake=blue&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7fdc
+            dist/github-contribution-grid-snake-purple.svg?palette=github-dark&color_snake=purple&color_dots=#d8b4fe,#c084fc,#a855f7,#9333ea,#7e22ce
+            
+            # GIF version with animation
+            dist/github-contribution-grid-snake-animated.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7fdc&gap=2&size=800
+            
+            # High quality PNG versions
+            dist/github-contribution-grid-snake.png?color_snake=green&color_dots=#86efac,#4ade80,#22c55e,#16a34a,#15803d&size=1200&padding=20
+            dist/github-contribution-grid-snake-dark.png?palette=github-dark&color_snake=cyan&size=1200&padding=20
         
       - name: Deploy to Output Branch
         uses: JamesIves/github-pages-deploy-action@v4
@@ -32,3 +42,4 @@ jobs:
           branch: output
           folder: dist
           clean: true
+          commit-message: "Update snake animations with enhanced graphics"
