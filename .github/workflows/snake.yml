@@ -1,189 +1,38 @@
-name: Generate 3D Animated Snake Matrix
+name: Generate Best 3D Snake
 
 on:
   schedule:
-    - cron: "0 0 * * *"  # Daily at midnight UTC
+    - cron: "0 0 * * *"
   workflow_dispatch:
-    inputs:
-      animation_style:
-        description: '3D Animation Style'
-        required: false
-        default: 'matrix-rotate'
-        type: choice
-        options:
-          - matrix-rotate
-          - helix-spiral
-          - depth-wave
-          - neon-pulse
 
 jobs:
-  generate-3d-snake-matrix:
-    runs-on: ubuntu-latest-8-core
+  build:
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-      pages: write
-      id-token: write
-    
-    env:
-      SNAKE_3D_QUALITY: "ultra"
-      RENDER_SIZE: "1200"
-      ANIMATION_FPS: "30"
     
     steps:
-      - name: 🚀 Initialize 3D Render Environment
+      - name: Checkout Repository
         uses: actions/checkout@v3
+        
+      - name: Generate Top 3D Snakes
+        uses: Platane/snk@v3
         with:
-          fetch-depth: 0
-
-      - name: 🎮 Setup 3D Graphics Tools
-        uses: ./.github/actions/setup-3d
-        with:
-          blender-version: '3.6'
-          threejs-version: 'r158'
-          render-engine: 'cycles'
-
-      - name: 🌟 Generate Multi-Format 3D Snakes
-        uses: Platane/snk@master
-        id: generate-snakes
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          gif_fps: ${{ env.ANIMATION_FPS }}
-          svg_quality: 'high'
-          png_depth: '32bit'
+          github_user_name: Alpha-Male-Dennis
           outputs: |
-            # 1. Main 3D Animated Matrix (GIF)
-            dist/snake-3d-matrix.gif
-              ?github_user_name=${{ github.repository_owner }}
-              &color_snake=linear-gradient(45deg, #6366f1, #8b5cf6, #ec4899)
-              &color_dots=#0f172a22,#1e293b44,#33415566,#47556988
-              &size=1200
-              &animation=helix
-              &duration=15
-              &fps=${{ env.ANIMATION_FPS }}
-              &shadow_depth=8
-              &light_angle=45
-              &particles=true
-              &bloom_effect=true
+            # Main 3D animated version
+            dist/snake-3d-main.gif?color_snake=linear-gradient(90deg, #ff6b35, #fbbf24)&color_dots=#1e293b,#334155,#475569,#64748b&size=1000&animation_duration=12&shadow=true&glow=true
             
-            # 2. Interactive 3D Web Component (SVG)
-            dist/snake-3d-interactive.svg
-              ?github_user_name=${{ github.repository_owner }}
-              &color_snake=radial-gradient(circle, #3b82f6, #1d4ed8)
-              &color_dots=#1e1b4b,#312e81,#4338ca,#6366f1
-              &size=1000
-              &depth=24
-              &perspective=1200
-              &specular_highlight=true
-              &ambient_occlusion=true
+            # Best 3D static version
+            dist/snake-3d-best.svg?color_snake=linear-gradient(135deg, #8b5cf6, #3b82f6)&color_dots=#1e1b4b,#312e81,#4338ca,#6366f1&size=800&depth_effect=true&shadow_offset=4
             
-            # 3. 4K Ultra HD Static Render (PNG)
-            dist/snake-3d-ultra.png
-              ?github_user_name=${{ github.repository_owner }}
-              &color_snake=linear-gradient(135deg, #10b981, #059669, #047857)
-              &color_dots=#064e3b,#065f46,#047857,#059669
-              &size=3840
-              &antialias=16x
-              &ray_tracing=true
-              &global_illumination=true
-              &reflections=true
-              &transparency=0.8
-            
-            # 4. AR/VR Ready Asset (GLB)
-            dist/snake-3d-ar.glb
-              ?github_user_name=${{ github.repository_owner }}
-              &format=glb
-              &lod=3
-              &texture_size=2048
-              &normal_map=true
-              &pbr_materials=true
-            
-            # 5. Dark Mode Optimized
-            dist/snake-3d-dark.gif
-              ?github_user_name=${{ github.repository_owner }}
-              &color_snake=linear-gradient(90deg, #fbbf24, #f59e0b, #d97706)
-              &color_dots=#1c1917,#292524,#44403c,#57534e
-              &size=800
-              &animation=sinusoidal
-              &duration=12
-              &glow_intensity=1.5
-              &dark_background=true
-
-      - name: 🎨 Post-process 3D Effects
-        run: |
-          chmod +x ./scripts/enhance-3d.sh
-          ./scripts/enhance-3d.sh \
-            --input "dist/snake-3d-matrix.gif" \
-            --output "dist/snake-3d-enhanced.gif" \
-            --effects "bloom,depth-of-field,motion-blur" \
-            --quality "ultra"
-
-      - name: 📊 Generate Analytics Dashboard
-        uses: ./.github/actions/analytics
+            # For README display
+            dist/snake-3d-showcase.png?color_snake=linear-gradient(90deg, #10b981, #3b82f6)&color_dots=#0f766e,#0d9488,#14b8a6,#2dd4bf&size=1200&padding=40&radius=8&3d_effect=true
+        
+      - name: Deploy 3D Snakes
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          input_files: 'dist/*.gif,dist/*.png,dist/*.svg'
-          output_format: 'html'
-          metrics: 'views,engagement,render_quality'
-
-      - name: 🚀 Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          publish_branch: 3d-snake-gallery
-          commit_message: "🚀 3D Snake Matrix Update - ${{ github.sha }}"
-          force_orphan: true
-          enable_jekyll: false
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
-
-      - name: 📱 Create Social Preview
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const preview = require('./scripts/create-social-preview.js')
-            await preview.generate({
-              outputPath: 'dist/social-preview.jpg',
-              template: '3d-neon',
-              dimensions: '1200x630'
-            })
-
-      - name: 🔔 Notify Completion
-        if: success()
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '🎮 **3D Snake Matrix Successfully Generated!**\n\n✅ **Formats Available:**\n- 🎞️ Animated GIF (15s helix animation)\n- 🖼️ Interactive SVG\n- 📸 4K Ultra HD PNG\n- 🕶️ AR/VR GLB Model\n- 🌙 Dark Mode Version\n\n📊 **View Gallery:** https://${{ github.repository_owner }}.github.io/${{ github.repository }}/3d-snake-gallery/\n\n🎛️ **Next Update:** ${{ fromJSON('["Tomorrow at midnight", "In 24 hours"]')[Math.floor(Math.random() * 2)] }}'
-            })
-
-      - name: 🗑️ Cleanup Cache
-        if: always()
-        uses: actions/cache/clean@v1
-        with:
-          path: |
-            ~/.cache/blender
-            ~/.npm
-          key: ${{ runner.os }}-3d-cache
-
-  monitor-performance:
-    runs-on: ubuntu-latest
-    needs: [generate-3d-snake-matrix]
-    if: always()
-    
-    steps:
-      - name: 📈 Performance Analytics
-        uses: ./.github/actions/performance-check
-        with:
-          artifact_path: 'dist'
-          metrics_threshold: 'size<10MB,render_time<60s'
-          
-      - name: 🏆 Quality Assurance
-        run: |
-          echo "### 🎯 3D Render Quality Report" >> $GITHUB_STEP_SUMMARY
-          echo "✅ All 3D assets generated successfully" >> $GITHUB_STEP_SUMMARY
-          echo "📊 Total formats: 5" >> $GITHUB_STEP_SUMMARY
-          echo "🎮 Features: AR/VR ready, 4K, Interactive, Animated" >> $GITHUB_STEP_SUMMARY
-          echo "🔗 Gallery: https://${{ github.repository_owner }}.github.io/${{ github.repository }}/" >> $GITHUB_STEP_SUMMARY
+          branch: output
+          folder: dist
+          clean: true
+          commit-message: "✨ Update 3D snake effects"
