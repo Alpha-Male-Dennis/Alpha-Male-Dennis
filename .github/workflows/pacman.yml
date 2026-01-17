@@ -1,0 +1,43 @@
+name: Generate Pac-Man Contribution Graph
+
+on:
+  schedule:
+    - cron: "0 0 * * *"  # Runs daily at midnight UTC
+  workflow_dispatch:  # Allows manual trigger
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/pacman.yml'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Generate Pac-Man contribution graph
+        uses: Platane/snk@v3
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          svg_out_path: output/pacman-contribution-graph.svg
+          
+      - name: Generate dark version
+        uses: Platane/snk@v3
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          svg_out_path: output/pacman-contribution-graph-dark.svg
+          color_snake: "#2d2d2d"
+          color_dots: "#4d4d4d"
+          
+      - name: Commit and push if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add output/
+          git commit -m "chore: Update Pac-Man contribution graph" -a || echo "No changes to commit"
+          git push
