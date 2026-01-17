@@ -1,4 +1,4 @@
-<h1 align="center">Hey 👋 I'm Dennis Chipman</h1>
+<h1 align="center">Hey 👋 I'm Dennis Chipman a.k.a The Alpha Male</h1>
 <p align="center">
   A software engineer & full-stack developer. My journey in tech has given me a dose of experience in these technologies.
   You can find out more about me and see some of my featured projects on my
@@ -93,7 +93,6 @@
 
 <div align="center">
 
-  <!-- Snake Animation - This will work after workflow runs -->
   ![Snake animation](https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/output/snake.svg)
 
 </div>
@@ -142,5 +141,6 @@
 ---
 
 <div align="center">
-  <img src="https://komarev.com/ghpvc/?username=Alpha-Male-Dennis&label=Profile%20views&color=0e75b6&style=flat" alt="Profile views" />
+  <img src="https://komarev.com/ghpvc/?username=Alpha-Male-Dennis&label=Profile%20Views&color=0e75b6&style=flat" alt="Profile views" />
+  <p><i>Profile view count started on 16 Jan 2026</i></p>
 </div>
