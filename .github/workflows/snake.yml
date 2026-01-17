@@ -1,26 +1,17 @@
-name: Generate Animated Snake
+name: Debug Animated Snake
 
 on:
-  schedule:
-    - cron: "0 0 * * *"
   workflow_dispatch:
-    inputs:
-      theme:
-        description: "Animation theme"
-        required: false
-        default: "cyberpunk"
 
 env:
   USERNAME: "Alpha-Male-Dennis"
-  THEME: ${{ github.event.inputs.theme || 'cyberpunk' }}
+  THEME: "cyberpunk"
 
 jobs:
   generate-snake:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pages: write
-      id-token: write
 
     steps:
       - name: Checkout repository
@@ -34,455 +25,114 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install --upgrade pip setuptools wheel
 
-      - name: Generate animated snake
+      - name: Create and run simple test script
         run: |
-          cat > generate_animated_snake.py << 'EOF'
+          echo "Creating test Python script..."
+          
+          cat > test_simple.py << 'EOF'
+          import sys
+          import datetime
+          
+          print("Python version:", sys.version)
+          print("Current time:", datetime.datetime.now())
+          print("Test successful!")
+          
+          # Try basic SVG generation
+          with open("test.svg", "w") as f:
+              f.write('''<svg width="100" height="100">
+                <rect width="100" height="100" fill="blue"/>
+                <circle cx="50" cy="50" r="40" fill="red"/>
+              </svg>''')
+          print("Created test.svg")
+          EOF
+          
+          python test_simple.py
+          
+          ls -la *.svg
+
+      - name: Create and run debug snake script
+        run: |
+          echo "Creating debug snake script..."
+          
+          cat > debug_snake.py << 'EOF'
+          import sys
           import datetime
           import math
           import random
-          import json
-          import html
-          from dataclasses import dataclass
-          from typing import List, Tuple
-
-          @dataclass
-          class Theme:
-              name: str
-              bg_color: str
-              snake_colors: List[str]
-              block_colors: List[str]
-              text_color: str
-              accent_color: str
-              glow_color: str
-
-          @dataclass
-          class Collectible:
-              x: float
-              y: float
-              size: float
-              color: str
-              value: int
-              type: str
-              id: str
-              collected: bool = False
-
-          class AnimatedSnakeGenerator:
-              def __init__(self, username: str, theme_name: str):
-                  self.username = username
-                  self.width = 1000
-                  self.height = 400
-                  self.themes = self._init_themes()
-                  self.theme = self.themes.get(theme_name, self.themes["cyberpunk"])
-                  self.collectibles = []
-                  self.snake_segments = []
-                  self.date_str = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-                  self.contribution_points = []
-                  self.path_length = 0
-
-              def _init_themes(self):
-                  return {
-                      "cyberpunk": Theme(
-                          "cyberpunk",
-                          "#0a0e17",
-                          ["#00ff9d", "#00b8ff", "#9d00ff"],
-                          ["#ff0055", "#ffaa00", "#00ffaa", "#aa00ff"],
-                          "#ffffff",
-                          "#00ff9d",
-                          "#00ff9d"
-                      ),
-                      "github": Theme(
-                          "github",
-                          "#0d1117",
-                          ["#58a6ff", "#8b949e", "#238636"],
-                          ["#f78166", "#56d364", "#e3b341", "#8b949e"],
-                          "#f0f6fc",
-                          "#58a6ff",
-                          "#58a6ff"
-                      ),
-                      "matrix": Theme(
-                          "matrix",
-                          "#001100",
-                          ["#00ff41", "#008f11", "#003b00"],
-                          ["#00ff41", "#007700", "#00aa00", "#003300"],
-                          "#00ff41",
-                          "#00ff41",
-                          "#00ff41"
-                      )
-                  }
-
-              def generate_contribution_path(self):
-                  """Generate a wavy path representing GitHub contributions over time"""
-                  points = []
-                  # Create a timeline of contributions (past 52 weeks)
-                  for week in range(52):
-                      # Simulate contribution patterns with peaks and valleys
-                      base_x = 100 + week * 16
-                      # Higher activity mid-week
-                      contribution_level = random.randint(0, 20)
-                      
-                      if week < 10:  # Learning phase
-                          base_y = 250
-                      elif week < 30:  # Active phase
-                          base_y = 200 + 50 * math.sin(week * 0.2) + contribution_level
-                      elif week < 42:  # Peak phase
-                          base_y = 150 + 80 * math.sin(week * 0.15) + contribution_level
-                      else:  # Recent phase
-                          base_y = 180 + 40 * math.sin(week * 0.25) + contribution_level
-                      
-                      points.append((base_x, base_y))
-                      
-                      # Add contribution dots along the way
-                      for _ in range(min(contribution_level, 5)):
-                          dot_x = base_x + random.randint(-5, 5)
-                          dot_y = base_y + random.randint(-5, 5)
-                          self.contribution_points.append((dot_x, dot_y))
-                  
-                  return points
-
-              def generate_collectibles(self):
-                  """Generate collectible items along the path"""
-                  types = [
-                      ("commit", 100, 8, "C"),
-                      ("pr", 250, 10, "PR"),
-                      ("issue", 500, 12, "IS"),
-                      ("star", 1000, 14, "★"),
-                      ("fork", 750, 11, "F"),
-                      ("collab", 1500, 16, "CO"),
-                  ]
-                  
-                  # Place collectibles at strategic points
-                  for i in range(25):
-                      week = random.randint(0, 51)
-                      x = 100 + week * 16 + random.randint(-10, 10)
-                      
-                      # Position based on contribution level
-                      if week < 15:
-                          y = 220 + random.randint(-30, 30)
-                      elif week < 35:
-                          y = 180 + random.randint(-40, 40)
-                      else:
-                          y = 160 + random.randint(-35, 35)
-                      
-                      t, v, s, symbol = random.choice(types)
-                      self.collectibles.append(
-                          Collectible(
-                              x, y, s,
-                              random.choice(self.theme.block_colors),
-                              v, t, f"collectible_{i}"
-                          )
-                      )
-
-              def generate_snake_segments(self, points):
-                  """Create snake body segments"""
-                  segments = []
-                  snake_length = 10  # Number of segments
-                  segment_distance = 8  # Distance between segments
-                  
-                  for i in range(snake_length):
-                      color = self.theme.snake_colors[i % len(self.theme.snake_colors)]
-                      segments.append({
-                          'index': i,
-                          'color': color,
-                          'size': 12 - (i * 0.5)  # Head is larger than tail
-                      })
-                  
-                  return segments
-
-              def generate_svg(self):
-                  # Generate path and collectibles
-                  path_points = self.generate_contribution_path()
-                  self.generate_collectibles()
-                  snake_segments = self.generate_snake_segments(path_points)
-
-                  u = html.escape(self.username)
-                  d = html.escape(self.date_str)
-
-                  # Create SVG path for the trail
-                  path_d = f"M {path_points[0][0]} {path_points[0][1]}"
-                  for point in path_points[1:]:
-                      path_d += f" L {point[0]} {point[1]}"
-
-                  # Calculate animation duration based on path length
-                  animation_duration = "20s"
-
-                  return f'''<?xml version="1.0" encoding="UTF-8"?>
-          <svg xmlns="http://www.w3.org/2000/svg" width="{self.width}" height="{self.height}" viewBox="0 0 {self.width} {self.height}">
-            <style>
-              @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&amp;family=Inter:wght@300;400;600&amp;display=swap');
+          
+          print("=== DEBUG SNAKE GENERATOR ===")
+          print("Python version:", sys.version)
+          
+          # Test basic functionality
+          try:
+              # Test 1: Basic math
+              print("Test 1 - Math: sin(1) =", math.sin(1))
               
-              /* Base styles */
-              .header {{ font-family: Orbitron, sans-serif; font-weight: 900; }}
-              .stats {{ font-family: Inter, sans-serif; }}
+              # Test 2: Random
+              print("Test 2 - Random:", random.randint(1, 100))
               
-              /* Snake animations */
-              @keyframes moveSnake {{
-                0% {{ 
-                  offset-distance: 0%;
-                  filter: drop-shadow(0 0 3px {self.theme.glow_color});
-                }}
-                100% {{ 
-                  offset-distance: 100%;
-                  filter: drop-shadow(0 0 8px {self.theme.glow_color});
-                }}
-              }}
+              # Test 3: Dataclasses
+              from dataclasses import dataclass
+              @dataclass
+              class TestClass:
+                  x: int
+                  y: str
               
-              @keyframes pulseCollectible {{
-                0%, 100% {{ transform: scale(1); opacity: 1; }}
-                50% {{ transform: scale(1.2); opacity: 0.8; }}
-              }}
+              test_obj = TestClass(10, "hello")
+              print("Test 3 - Dataclasses:", test_obj)
               
-              @keyframes collect {{
-                0% {{ transform: scale(1); opacity: 1; }}
-                100% {{ transform: scale(0); opacity: 0; }}
-              }}
+              # Test 4: HTML escape
+              import html
+              print("Test 4 - HTML escape:", html.escape("<div>test</div>"))
               
-              @keyframes glow {{
-                0%, 100% {{ filter: drop-shadow(0 0 2px {self.theme.glow_color}); }}
-                50% {{ filter: drop-shadow(0 0 6px {self.theme.glow_color}); }}
-              }}
+              # Test 5: Create simple SVG
+              username = "Alpha-Male-Dennis"
+              date_str = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
               
-              .snake-head {{
-                offset-path: path("{path_d}");
-                animation: moveSnake {animation_duration} linear infinite;
-                transform-origin: center;
-              }}
-              
-              .snake-segment {{
-                offset-path: path("{path_d}");
-                animation: moveSnake {animation_duration} linear infinite;
-                animation-delay: calc(var(--segment-index) * -0.5s);
-                transform-origin: center;
-              }}
-              
-              .collectible {{
-                animation: pulseCollectible 2s ease-in-out infinite;
-                cursor: pointer;
-              }}
-              
-              .collectible:hover {{
-                animation: collect 0.5s forwards;
-              }}
-              
-              .contribution-dot {{
-                opacity: 0.6;
-              }}
-            </style>
-
-            <rect width="100%" height="100%" fill="{self.theme.bg_color}"/>
-            
-            <!-- Header -->
-            <text x="500" y="40" text-anchor="middle" class="header" font-size="32" fill="{self.theme.accent_color}" style="animation: glow 2s ease-in-out infinite;">
-              {u}'s GitHub Journey
+              svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+          <svg width="1000" height="400" viewBox="0 0 1000 400">
+            <rect width="100%" height="100%" fill="#0a0e17"/>
+            <text x="500" y="200" text-anchor="middle" fill="#00ff9d" font-size="24">
+              {html.escape(username)}'s Snake - {html.escape(date_str)}
             </text>
-
-            <text x="500" y="65" text-anchor="middle" class="stats" font-size="14" fill="{self.theme.text_color}">
-              Updated {d} | Following the path of contributions
-            </text>
-
-            <!-- Contribution dots trail -->
-            <g id="contributions">
-              {"".join(f'<circle cx="{p[0]}" cy="{p[1]}" r="1.5" fill="{self.theme.text_color}" opacity="0.3" class="contribution-dot"/>' for p in self.contribution_points)}
-            </g>
-            
-            <!-- Path -->
-            <path id="snake-path" d="{path_d}" fill="none" stroke="{self.theme.text_color}" stroke-width="1" stroke-dasharray="5,5" opacity="0.3"/>
-            
-            <!-- Snake -->
-            <g id="snake">
-              <!-- Snake head -->
-              <circle class="snake-head" r="14" fill="{self.theme.snake_colors[0]}">
-                <animate attributeName="r" values="14;12;14" dur="1s" repeatCount="indefinite"/>
-              </circle>
-              
-              <!-- Snake body segments -->
-              {"".join(
-                f'<circle class="snake-segment" r="{segment["size"]}" fill="{segment["color"]}" opacity="{0.9 - (segment["index"] * 0.08)}" style="--segment-index: {segment["index"]};"/>'
-                for segment in snake_segments[1:]
-              )}
-              
-              <!-- Snake eyes -->
-              <circle class="snake-head" r="3" fill="#000" style="transform: translate(-4px, -4px);"/>
-              <circle class="snake-head" r="3" fill="#000" style="transform: translate(-4px, 4px);"/>
-              <circle class="snake-head" r="1.5" fill="#fff" style="transform: translate(-5px, -4px);"/>
-              <circle class="snake-head" r="1.5" fill="#fff" style="transform: translate(-5px, 4px);"/>
-            </g>
-            
-            <!-- Collectibles -->
-            <g id="collectibles">
-              {"".join(
-                f'''
-                <g class="collectible" id="{c.id}">
-                  <circle cx="{c.x}" cy="{c.y}" r="{c.size}" fill="{c.color}" opacity="0.9"/>
-                  <circle cx="{c.x}" cy="{c.y}" r="{c.size * 0.7}" fill="white" opacity="0.3"/>
-                  <text x="{c.x}" y="{c.y + 3}" text-anchor="middle" font-family="Inter" font-size="{c.size * 0.8}" fill="{self.theme.bg_color}" font-weight="bold">
-                    {["C","PR","IS","★","F","CO"][random.randint(0,5)]}
-                  </text>
-                  <animateTransform attributeName="transform" type="rotate" from="0 {c.x} {c.y}" to="360 {c.x} {c.y}" dur="4s" repeatCount="indefinite"/>
-                </g>
-                '''
-                for c in self.collectibles[:15]  # Limit to 15 collectibles for performance
-              )}
-            </g>
-            
-            <!-- Legend -->
-            <g transform="translate(20, 350)">
-              <rect width="960" height="35" fill="{self.theme.bg_color}" opacity="0.8" rx="5"/>
-              <text x="10" y="20" font-family="Inter" font-size="12" fill="{self.theme.text_color}">🐍 Snake Timeline: </text>
-              <circle cx="120" cy="15" r="6" fill="{self.theme.snake_colors[0]}"/>
-              <text x="130" y="20" font-family="Inter" font-size="11" fill="{self.theme.text_color}">Head</text>
-              <circle cx="180" cy="15" r="5" fill="{self.theme.snake_colors[1]}"/>
-              <text x="190" y="20" font-family="Inter" font-size="11" fill="{self.theme.text_color}">Body</text>
-              <circle cx="250" cy="15" r="8" fill="{self.theme.block_colors[0]}"/>
-              <text x="260" y="20" font-family="Inter" font-size="11" fill="{self.theme.text_color}">Commits</text>
-              <circle cx="330" cy="15" r="10" fill="{self.theme.block_colors[1]}"/>
-              <text x="342" y="20" font-family="Inter" font-size="11" fill="{self.theme.text_color}">PRs/Issues</text>
-              <circle cx="410" cy="15" r="12" fill="{self.theme.block_colors[2]}"/>
-              <text x="425" y="20" font-family="Inter" font-size="11" fill="{self.theme.text_color}">Stars</text>
-            </g>
+            <circle cx="500" cy="200" r="50" fill="#ff0055"/>
           </svg>'''
-
-              def save(self):
-                  svg = self.generate_svg()
-                  with open("snake.svg", "w", encoding="utf-8") as f:
-                      f.write(svg)
-                  
-                  # Also generate an HTML version for better interactivity
-                  html_content = f'''<!DOCTYPE html>
-          <html>
-          <head>
-              <title>{self.username}'s Animated GitHub Snake</title>
-              <meta charset="UTF-8">
-              <style>
-                  body {{ 
-                      margin: 0; 
-                      padding: 20px; 
-                      background: {self.theme.bg_color}; 
-                      display: flex; 
-                      justify-content: center; 
-                      align-items: center; 
-                      min-height: 100vh; 
-                      font-family: 'Inter', sans-serif; 
-                  }}
-                  .container {{ 
-                      text-align: center; 
-                      background: rgba(255,255,255,0.05); 
-                      padding: 20px; 
-                      border-radius: 10px; 
-                      box-shadow: 0 0 30px rgba(0,0,0,0.3);
-                  }}
-                  h1 {{ 
-                      color: {self.theme.accent_color}; 
-                      font-family: 'Orbitron', sans-serif; 
-                      margin-bottom: 10px; 
-                  }}
-                  .stats {{ 
-                      color: {self.theme.text_color}; 
-                      margin-bottom: 20px; 
-                      opacity: 0.8; 
-                  }}
-                  .controls {{ 
-                      margin-top: 20px; 
-                      color: {self.theme.text_color}; 
-                  }}
-                  button {{ 
-                      background: {self.theme.accent_color}; 
-                      color: {self.theme.bg_color}; 
-                      border: none; 
-                      padding: 10px 20px; 
-                      border-radius: 5px; 
-                      cursor: pointer; 
-                      font-family: 'Orbitron', sans-serif; 
-                      margin: 0 10px; 
-                  }}
-                  button:hover {{ 
-                      opacity: 0.8; 
-                  }}
-              </style>
-          </head>
-          <body>
-              <div class="container">
-                  <h1>🚀 {self.username}'s GitHub Snake</h1>
-                  <div class="stats">Last updated: {self.date_str}</div>
-                  <div id="svg-container">{svg}</div>
-                  <div class="controls">
-                      <p>Watch the snake collect contributions along your GitHub journey!</p>
-                      <button onclick="window.location.reload()">🔄 Refresh Animation</button>
-                      <button onclick="pauseAnimation()">⏸️ Pause/Resume</button>
-                      <button onclick="collectAll()">🎮 Collect All</button>
-                  </div>
-                  <script>
-                      let animationPaused = false;
-                      
-                      function pauseAnimation() {{
-                          const svg = document.querySelector('svg');
-                          const animations = svg.querySelectorAll('*');
-                          
-                          if (!animationPaused) {{
-                              animations.forEach(el => {{
-                                  const style = window.getComputedStyle(el);
-                                  if (style.animationPlayState === 'running') {{
-                                      el.style.animationPlayState = 'paused';
-                                  }}
-                              }});
-                              animationPaused = true;
-                          }} else {{
-                              animations.forEach(el => {{
-                                  const style = window.getComputedStyle(el);
-                                  if (style.animationPlayState === 'paused') {{
-                                      el.style.animationPlayState = 'running';
-                                  }}
-                              }});
-                              animationPaused = false;
-                          }}
-                      }}
-                      
-                      function collectAll() {{
-                          const collectibles = document.querySelectorAll('.collectible');
-                          collectibles.forEach((col, index) => {{
-                              setTimeout(() => {{
-                                  col.style.animation = 'collect 0.5s forwards';
-                              }}, index * 100);
-                          }});
-                      }}
-                      
-                      // Add click to collect functionality
-                      document.addEventListener('DOMContentLoaded', () => {{
-                          const collectibles = document.querySelectorAll('.collectible');
-                          collectibles.forEach(col => {{
-                              col.addEventListener('click', () => {{
-                                  col.style.animation = 'collect 0.5s forwards';
-                                  setTimeout(() => col.style.display = 'none', 500);
-                              }});
-                          }});
-                      }});
-                  </script>
-              </div>
-          </body>
-          </html>'''
-                  
-                  with open("snake.html", "w", encoding="utf-8") as f:
-                      f.write(html_content)
-
-                  with open("snake_data.json", "w") as f:
-                      json.dump({
-                          "username": self.username,
-                          "collectibles": len(self.collectibles),
-                          "contributions": len(self.contribution_points),
-                          "last_updated": self.date_str,
-                          "theme": self.theme.name
-                      }, f)
-
-          if __name__ == "__main__":
-              gen = AnimatedSnakeGenerator("Alpha-Male-Dennis", "cyberpunk")
-              gen.save()
+              
+              with open("debug_snake.svg", "w", encoding="utf-8") as f:
+                  f.write(svg_content)
+              print("Test 5 - Created debug_snake.svg")
+              
+              # Test 6: JSON
+              import json
+              data = {"test": "success", "time": date_str}
+              with open("debug.json", "w") as f:
+                  json.dump(data, f)
+              print("Test 6 - Created debug.json")
+              
+              print("=== ALL TESTS PASSED ===")
+              
+          except Exception as e:
+              print(f"=== ERROR: {type(e).__name__} ===")
+              print(f"Error message: {str(e)}")
+              print(f"Error at line: {sys.exc_info()[-1].tb_lineno}")
+              sys.exit(1)
           EOF
+          
+          echo "Running debug script..."
+          python debug_snake.py
+          
+          echo "Generated files:"
+          ls -la *.svg *.json *.py
 
-          python generate_animated_snake.py
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Upload debug artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          publish_branch: gh-pages
+          name: debug-files
+          path: |
+            *.svg
+            *.json
+            *.py
+          retention-days: 1
