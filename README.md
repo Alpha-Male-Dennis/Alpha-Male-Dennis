@@ -96,7 +96,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/main/output/snake-contribution-graph-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/main/output/snake-contribution-graph.svg">
-  <img alt="Pac-Man contribution graph" src="https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/output/snake-contribution-graph.svg" width="100%">
+  <img alt="Snake contribution graph" src="https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/output/snake-contribution-graph.svg" width="100%">
 </picture>
 
 
