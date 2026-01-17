@@ -1,11 +1,15 @@
-name: Debug Animated Snake
+name: Generate Simple Animated Snake
 
 on:
   workflow_dispatch:
+    inputs:
+      theme:
+        description: "Theme (cyberpunk/github/matrix)"
+        required: false
+        default: "cyberpunk"
 
 env:
   USERNAME: "Alpha-Male-Dennis"
-  THEME: "cyberpunk"
 
 jobs:
   generate-snake:
@@ -22,117 +26,139 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install dependencies
+      - name: Generate snake
         run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade pip setuptools wheel
-
-      - name: Create and run simple test script
-        run: |
-          echo "Creating test Python script..."
-          
-          cat > test_simple.py << 'EOF'
-          import sys
-          import datetime
-          
-          print("Python version:", sys.version)
-          print("Current time:", datetime.datetime.now())
-          print("Test successful!")
-          
-          # Try basic SVG generation
-          with open("test.svg", "w") as f:
-              f.write('''<svg width="100" height="100">
-                <rect width="100" height="100" fill="blue"/>
-                <circle cx="50" cy="50" r="40" fill="red"/>
-              </svg>''')
-          print("Created test.svg")
-          EOF
-          
-          python test_simple.py
-          
-          ls -la *.svg
-
-      - name: Create and run debug snake script
-        run: |
-          echo "Creating debug snake script..."
-          
-          cat > debug_snake.py << 'EOF'
-          import sys
+          cat > snake_generator.py << 'EOF'
           import datetime
           import math
           import random
           
-          print("=== DEBUG SNAKE GENERATOR ===")
-          print("Python version:", sys.version)
+          # Simple theme definitions
+          THEMES = {
+              "cyberpunk": {
+                  "bg": "#0a0e17",
+                  "snake": "#00ff9d",
+                  "collectible": "#ff0055",
+                  "text": "#ffffff",
+                  "accent": "#00ff9d"
+              },
+              "github": {
+                  "bg": "#0d1117",
+                  "snake": "#58a6ff",
+                  "collectible": "#f78166",
+                  "text": "#f0f6fc",
+                  "accent": "#58a6ff"
+              },
+              "matrix": {
+                  "bg": "#001100",
+                  "snake": "#00ff41",
+                  "collectible": "#00ff41",
+                  "text": "#00ff41",
+                  "accent": "#00ff41"
+              }
+          }
           
-          # Test basic functionality
-          try:
-              # Test 1: Basic math
-              print("Test 1 - Math: sin(1) =", math.sin(1))
+          # Get theme (default to cyberpunk)
+          theme_name = "${{ github.event.inputs.theme || 'cyberpunk' }}"
+          theme = THEMES.get(theme_name, THEMES["cyberpunk"])
+          username = "Alpha-Male-Dennis"
+          date_str = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+          
+          # Generate snake path points
+          points = []
+          for i in range(30):
+              x = 100 + i * 30
+              y = 200 + 50 * math.sin(i * 0.4)
+              points.append((x, y))
+          
+          # Create SVG
+          svg = f'''<?xml version="1.0" encoding="UTF-8"?>
+          <svg width="1000" height="400" viewBox="0 0 1000 400" xmlns="http://www.w3.org/2000/svg">
+            <style>
+              @keyframes moveSnake {{
+                0% {{ transform: translate(0px, 0px); }}
+                100% {{ transform: translate(870px, 0px); }}
+              }}
               
-              # Test 2: Random
-              print("Test 2 - Random:", random.randint(1, 100))
+              @keyframes pulse {{
+                0%, 100% {{ opacity: 1; transform: scale(1); }}
+                50% {{ opacity: 0.7; transform: scale(1.1); }}
+              }}
               
-              # Test 3: Dataclasses
-              from dataclasses import dataclass
-              @dataclass
-              class TestClass:
-                  x: int
-                  y: str
+              .snake {{ 
+                animation: moveSnake 10s linear infinite;
+              }}
               
-              test_obj = TestClass(10, "hello")
-              print("Test 3 - Dataclasses:", test_obj)
-              
-              # Test 4: HTML escape
-              import html
-              print("Test 4 - HTML escape:", html.escape("<div>test</div>"))
-              
-              # Test 5: Create simple SVG
-              username = "Alpha-Male-Dennis"
-              date_str = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-              
-              svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
-          <svg width="1000" height="400" viewBox="0 0 1000 400">
-            <rect width="100%" height="100%" fill="#0a0e17"/>
-            <text x="500" y="200" text-anchor="middle" fill="#00ff9d" font-size="24">
-              {html.escape(username)}'s Snake - {html.escape(date_str)}
+              .collectible {{
+                animation: pulse 2s infinite;
+              }}
+            </style>
+            
+            <rect width="100%" height="100%" fill="{theme['bg']}"/>
+            
+            <text x="500" y="50" text-anchor="middle" font-family="Arial" font-size="28" fill="{theme['accent']}" font-weight="bold">
+              {username}'s GitHub Snake
             </text>
-            <circle cx="500" cy="200" r="50" fill="#ff0055"/>
+            
+            <text x="500" y="80" text-anchor="middle" font-family="Arial" font-size="14" fill="{theme['text']}">
+              Updated {date_str}
+            </text>
+            
+            <!-- Snake -->
+            <g class="snake">
+              <circle cx="100" cy="200" r="15" fill="{theme['snake']}"/>
+              <circle cx="85" cy="200" r="10" fill="{theme['snake']}" opacity="0.8"/>
+              <circle cx="70" cy="200" r="8" fill="{theme['snake']}" opacity="0.6"/>
+            </g>
+            
+            <!-- Collectibles -->
+            <circle class="collectible" cx="300" cy="200" r="12" fill="{theme['collectible']}"/>
+            <circle class="collectible" cx="500" cy="180" r="10" fill="{theme['collectible']}"/>
+            <circle class="collectible" cx="700" cy="220" r="14" fill="{theme['collectible']}"/>
+            <circle class="collectible" cx="900" cy="190" r="11" fill="{theme['collectible']}"/>
+            
+            <!-- Path line -->
+            <path d="M 100 200 C 200 150, 400 250, 500 180 S 800 230, 900 190" 
+                  fill="none" stroke="{theme['text']}" stroke-width="2" stroke-dasharray="5,5" opacity="0.3"/>
+            
+            <text x="500" y="380" text-anchor="middle" font-family="Arial" font-size="12" fill="{theme['text']}">
+              🐍 Snake animation | Theme: {theme_name}
+            </text>
           </svg>'''
+          
+          # Save files
+          with open("snake.svg", "w") as f:
+              f.write(svg)
+          
+          print("Generated snake.svg successfully!")
+          
+          # Create a simple README
+          with open("README.md", "w") as f:
+              f.write(f"""# 🐍 GitHub Snake Animation
               
-              with open("debug_snake.svg", "w", encoding="utf-8") as f:
-                  f.write(svg_content)
-              print("Test 5 - Created debug_snake.svg")
+              ## {username}'s Animated Snake
               
-              # Test 6: JSON
-              import json
-              data = {"test": "success", "time": date_str}
-              with open("debug.json", "w") as f:
-                  json.dump(data, f)
-              print("Test 6 - Created debug.json")
+              **Last Updated**: {date_str}
               
-              print("=== ALL TESTS PASSED ===")
+              **Theme**: {theme_name}
               
-          except Exception as e:
-              print(f"=== ERROR: {type(e).__name__} ===")
-              print(f"Error message: {str(e)}")
-              print(f"Error at line: {sys.exc_info()[-1].tb_lineno}")
-              sys.exit(1)
+              ![Snake Animation](snake.svg)
+              
+              ---
+              
+              This animation is automatically generated daily.
+              """)
           EOF
           
-          echo "Running debug script..."
-          python debug_snake.py
+          python snake_generator.py
           
           echo "Generated files:"
-          ls -la *.svg *.json *.py
+          ls -la
 
-      - name: Upload debug artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-files
-          path: |
-            *.svg
-            *.json
-            *.py
-          retention-days: 1
+      - name: Commit and push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add snake.svg README.md
+          git commit -m "Update snake animation" || echo "No changes to commit"
+          git push
