@@ -129,9 +129,9 @@
 
 <p align="center">
   <i>
-    ⚠️ Note: GitHub stat cards are generated using public GitHub APIs and may not fully reflect total contributions.
-    These stats exclude contributions made in forks, contributions made using a different email address,
-    contributions outside supported GitHub event types, and most private repository contributions.
+    ⚠️ Note: GitHub stat cards are generated using public GitHub APIs and may sometimes delay to update data to current data becuase they update in specific time intervals e.g after 4hrs.
+    These stats may sometimes exclude contributions made in forks, contributions made using a different email address,
+    contributions outside supported GitHub event types, and most private repository contributions unless the user explicitly gives access to these contributions.
     The contribution graph on my GitHub profile represents the most accurate activity total.
   </i>
 </p>

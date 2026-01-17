@@ -1,164 +1,100 @@
-name: Generate Simple Animated Snake
+name: Generate Snake Animation
 
 on:
+  schedule:
+    - cron: "0 0 * * *"
   workflow_dispatch:
-    inputs:
-      theme:
-        description: "Theme (cyberpunk/github/matrix)"
-        required: false
-        default: "cyberpunk"
-
-env:
-  USERNAME: "Alpha-Male-Dennis"
 
 jobs:
-  generate-snake:
+  build:
     runs-on: ubuntu-latest
+    
     permissions:
       contents: write
-
+      pages: write
+      id-token: write
+    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - name: Checkout
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          python-version: "3.10"
-
-      - name: Generate snake
+          node-version: '18'
+          
+      - name: Generate contribution SVG
         run: |
-          cat > snake_generator.py << 'EOF'
-          import datetime
-          import math
-          import random
+          # Create a simple script to generate a snake-like SVG
+          cat > generate-snake.js << 'EOF'
+          const fs = require('fs');
+          const https = require('https');
           
-          # Simple theme definitions
-          THEMES = {
-              "cyberpunk": {
-                  "bg": "#0a0e17",
-                  "snake": "#00ff9d",
-                  "collectible": "#ff0055",
-                  "text": "#ffffff",
-                  "accent": "#00ff9d"
-              },
-              "github": {
-                  "bg": "#0d1117",
-                  "snake": "#58a6ff",
-                  "collectible": "#f78166",
-                  "text": "#f0f6fc",
-                  "accent": "#58a6ff"
-              },
-              "matrix": {
-                  "bg": "#001100",
-                  "snake": "#00ff41",
-                  "collectible": "#00ff41",
-                  "text": "#00ff41",
-                  "accent": "#00ff41"
-              }
-          }
-          
-          # Get theme (default to cyberpunk)
-          theme_name = "${{ github.event.inputs.theme || 'cyberpunk' }}"
-          theme = THEMES.get(theme_name, THEMES["cyberpunk"])
-          username = "Alpha-Male-Dennis"
-          date_str = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-          
-          # Generate snake path points
-          points = []
-          for i in range(30):
-              x = 100 + i * 30
-              y = 200 + 50 * math.sin(i * 0.4)
-              points.append((x, y))
-          
-          # Create SVG
-          svg = f'''<?xml version="1.0" encoding="UTF-8"?>
-          <svg width="1000" height="400" viewBox="0 0 1000 400" xmlns="http://www.w3.org/2000/svg">
+          // Simple SVG template
+          const svgTemplate = (username, date) => `
+          <svg xmlns="http://www.w3.org/2000/svg" width="800" height="120" viewBox="0 0 800 120">
             <style>
-              @keyframes moveSnake {{
-                0% {{ transform: translate(0px, 0px); }}
-                100% {{ transform: translate(870px, 0px); }}
-              }}
-              
-              @keyframes pulse {{
-                0%, 100% {{ opacity: 1; transform: scale(1); }}
-                50% {{ opacity: 0.7; transform: scale(1.1); }}
-              }}
-              
-              .snake {{ 
-                animation: moveSnake 10s linear infinite;
-              }}
-              
-              .collectible {{
-                animation: pulse 2s infinite;
-              }}
+              .background { fill: #0d1117; }
+              .title { fill: #ffffff; font-family: Arial, sans-serif; font-size: 24px; }
+              .subtitle { fill: #cccccc; font-family: Arial, sans-serif; font-size: 16px; }
+              .snake-path { fill: none; stroke: #00ff00; stroke-width: 3; }
+              .grid-line { fill: none; stroke: #30363d; stroke-width: 1; }
             </style>
             
-            <rect width="100%" height="100%" fill="{theme['bg']}"/>
+            <rect class="background" width="800" height="120"/>
             
-            <text x="500" y="50" text-anchor="middle" font-family="Arial" font-size="28" fill="{theme['accent']}" font-weight="bold">
-              {username}'s GitHub Snake
-            </text>
+            <!-- Title -->
+            <text class="title" x="400" y="40" text-anchor="middle">GitHub Contributions Snake</text>
+            <text class="subtitle" x="400" y="70" text-anchor="middle">For ${username} • Generated on ${date}</text>
             
-            <text x="500" y="80" text-anchor="middle" font-family="Arial" font-size="14" fill="{theme['text']}">
-              Updated {date_str}
-            </text>
+            <!-- Simple snake-like path -->
+            <path class="snake-path" d="M 50,90 Q 150,50 250,90 Q 350,130 450,90 Q 550,50 650,90 Q 750,130 750,90" />
             
-            <!-- Snake -->
-            <g class="snake">
-              <circle cx="100" cy="200" r="15" fill="{theme['snake']}"/>
-              <circle cx="85" cy="200" r="10" fill="{theme['snake']}" opacity="0.8"/>
-              <circle cx="70" cy="200" r="8" fill="{theme['snake']}" opacity="0.6"/>
-            </g>
-            
-            <!-- Collectibles -->
-            <circle class="collectible" cx="300" cy="200" r="12" fill="{theme['collectible']}"/>
-            <circle class="collectible" cx="500" cy="180" r="10" fill="{theme['collectible']}"/>
-            <circle class="collectible" cx="700" cy="220" r="14" fill="{theme['collectible']}"/>
-            <circle class="collectible" cx="900" cy="190" r="11" fill="{theme['collectible']}"/>
-            
-            <!-- Path line -->
-            <path d="M 100 200 C 200 150, 400 250, 500 180 S 800 230, 900 190" 
-                  fill="none" stroke="{theme['text']}" stroke-width="2" stroke-dasharray="5,5" opacity="0.3"/>
-            
-            <text x="500" y="380" text-anchor="middle" font-family="Arial" font-size="12" fill="{theme['text']}">
-              🐍 Snake animation | Theme: {theme_name}
-            </text>
-          </svg>'''
+            <!-- Grid lines -->
+            <path class="grid-line" d="M 0,90 L 800,90" />
+            <path class="grid-line" d="M 0,30 L 800,30" />
+            <path class="grid-line" d="M 0,60 L 800,60" />
+          </svg>
+          `;
           
-          # Save files
-          with open("snake.svg", "w") as f:
-              f.write(svg)
+          const username = 'Alpha-Male-Dennis';
+          const date = new Date().toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          });
           
-          print("Generated snake.svg successfully!")
-          
-          # Create a simple README
-          with open("README.md", "w") as f:
-              f.write(f"""# 🐍 GitHub Snake Animation
-              
-              ## {username}'s Animated Snake
-              
-              **Last Updated**: {date_str}
-              
-              **Theme**: {theme_name}
-              
-              ![Snake Animation](snake.svg)
-              
-              ---
-              
-              This animation is automatically generated daily.
-              """)
+          const svg = svgTemplate(username, date);
+          fs.writeFileSync('snake.svg', svg);
+          console.log('Generated snake.svg');
           EOF
           
-          python snake_generator.py
+          node generate-snake.js
           
-          echo "Generated files:"
-          ls -la
-
-      - name: Commit and push
+      - name: Verify SVG file
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add snake.svg README.md
-          git commit -m "Update snake animation" || echo "No changes to commit"
-          git push
+          echo "=== Checking generated snake.svg ==="
+          if [ -f "snake.svg" ]; then
+            echo "✓ snake.svg generated successfully!"
+            echo "File size: $(wc -c < snake.svg) bytes"
+            echo "First 5 lines:"
+            head -5 snake.svg
+          else
+            echo "✗ snake.svg not found!"
+            # Create a fallback SVG
+            echo '<?xml version="1.0" encoding="UTF-8"?>
+            <svg xmlns="http://www.w3.org/2000/svg" width="800" height="100">
+              <rect width="800" height="100" fill="#0d1117"/>
+              <text x="400" y="50" text-anchor="middle" font-family="Arial" font-size="20" fill="white">GitHub Contributions Snake - Alpha-Male-Dennis</text>
+            </svg>' > snake.svg
+          fi
+          
+      - name: Deploy to output branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: output
+          keep_files: false
+          force_orphan: true
