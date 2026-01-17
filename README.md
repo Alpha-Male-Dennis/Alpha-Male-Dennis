@@ -89,11 +89,17 @@
 
 ---
 
-## 🐍 Contribution Snake
+## 🎮 Pac-Man Contribution Graph
 
 <div align="center">
 
-  ![Snake animation](https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/output/snake.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/output/pacman-contribution-graph-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/output/pacman-contribution-graph.svg">
+  <img alt="Pac-Man contribution graph" src="https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/output/pacman-contribution-graph.svg" width="100%">
+</picture>
+
+<p><i>Watch Pac-Man chase ghosts through my coding contributions! 🟡👻</i></p>
 
 </div>
 
@@ -129,7 +135,7 @@
 
 <p align="center">
   <i>
-    ⚠️ Note: GitHub stat cards are generated using public GitHub APIs and may sometimes delay to update data to current data becuase they update in specific time intervals e.g after 4hrs.
+    ⚠️ Note: GitHub stat cards are generated using public GitHub APIs and may sometimes delay to update data to current data because they update in specific time intervals e.g after 4hrs.
     These stats may sometimes exclude contributions made in forks, contributions made using a different email address,
     contributions outside supported GitHub event types, and most private repository contributions unless the user explicitly gives access to these contributions.
     The contribution graph on my GitHub profile represents the most accurate activity total.
