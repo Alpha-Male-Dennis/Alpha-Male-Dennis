@@ -89,7 +89,7 @@
 
 ---
 
-## 🎮 Pac-Man Contribution Graph
+## 🐍 Snake Contribution Graph
 
 <div align="center">
 
@@ -99,7 +99,6 @@
   <img alt="Pac-Man contribution graph" src="https://raw.githubusercontent.com/Alpha-Male-Dennis/Alpha-Male-Dennis/output/pacman-contribution-graph.svg" width="100%">
 </picture>
 
-<p><i>Watch Pac-Man chase ghosts through my coding contributions! 🟡👻</i></p>
 
 </div>
 
